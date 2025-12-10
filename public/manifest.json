@@ -1,0 +1,26 @@
+{
+  "name": "ニコ生キープアライブ",
+  "version": "0.1.0",
+  "manifest_version": 3,
+  "description": "ニコニコ生放送の配信停止を検知し、自動リロードします。",
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "js": ["./content.js"],
+      "matches": ["https://live.nicovideo.jp/watch/*"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "./html/popup.html"
+  }
+}

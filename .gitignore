@@ -1,0 +1,11 @@
+# runtime directories
+node_modules/
+dist/
+dist*.zip
+
+# work directories
+temp/
+references/
+
+# claude
+.claude/settings.local.json
