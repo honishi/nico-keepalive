@@ -281,11 +281,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
         logInfo("モニターをスキップします (Offline)");
         return;
       }
-      startMonitor();
       logInfo("拡張が有効化されました");
+      startMonitor();
     } else {
-      stopMonitor();
       logInfo("拡張が無効化されました");
+      stopMonitor();
     }
   }
 });

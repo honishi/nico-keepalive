@@ -40,7 +40,6 @@ export async function playNotificationSound(
   try {
     const audio = new Audio(src);
     audio.volume = volume / 100;
-    audio.currentTime = 0;
     await audio.play();
   } catch (err) {
     if (options?.onError) {
