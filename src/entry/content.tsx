@@ -1,4 +1,3 @@
-import { COUNTDOWN_MS } from "../shared/reload-policy";
 import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, Settings } from "../shared/types";
@@ -10,6 +9,7 @@ const TICK_INTERVAL_MS = 5_000;
 const WARMUP_SKIP_MS = 60_000; // tick 初回開始からこの時間は監視処理をスキップする
 const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状態がこの時間続くと停止扱い
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
+const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
 
 let enabled = true;
