@@ -20,7 +20,6 @@ let monitorTimer: number | undefined;
 let countdownTimer: number | undefined;
 let lastTimeChangeAtMs = Date.now(); // 壁時計ベースで最後に currentTime の変化を確認した時刻
 let lastObservedCurrentTimeSec = 0; // video.currentTime の最後の観測値（秒）
-let notificationAsked = false;
 let tickCount = 0;
 let firstTickAtMs: number | undefined;
 let providerName: string | undefined;
@@ -111,7 +110,7 @@ function tick() {
     const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
     // eslint-disable-next-line no-console
     console.log(
-      `[nico-keepalive/content] warmup: 監視をスキップします (残り ${Math.ceil(
+      `[nico-keepalive/content] warmup: モニターをスキップします (残り ${Math.ceil(
         remainingMs / 1000,
       )} 秒)`,
     );
@@ -172,7 +171,6 @@ function handleStall(now: number) {
   playReloadSound();
   showCountdown(COUNTDOWN_MS);
   countdownTimer = window.setTimeout(() => {
-    notifyReload(currentProgramId());
     logInfo("リロードを実行します");
     window.location.reload();
   }, COUNTDOWN_MS);
@@ -266,29 +264,6 @@ function log(level: "INFO" | "WARN" | "ERROR", message: string) {
 
 const logInfo = (m: string) => log("INFO", m);
 const logWarn = (m: string) => log("WARN", m);
-
-function notifyReload(programId?: string) {
-  if (typeof Notification === "undefined") return;
-
-  const title = "nico-keepalive";
-  const body = programId
-    ? `配信停止を検知: ${programId} をリロードします`
-    : "配信停止を検知: ページをリロードします";
-
-  if (Notification.permission === "granted") {
-    new Notification(title, { body });
-    return;
-  }
-
-  if (Notification.permission === "default" && !notificationAsked) {
-    notificationAsked = true;
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        new Notification(title, { body });
-      }
-    });
-  }
-}
 
 // Respond to popup toggling enabled flag
 chrome.storage.onChanged.addListener((changes, area) => {
