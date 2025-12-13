@@ -1,3 +1,4 @@
+/* レイアウト（body / root） */
 body {
   width: 500px;
   margin: 0;
@@ -13,12 +14,9 @@ body {
   gap: 12px;
 }
 
+/* 共通セクション */
 .section {
   padding: 8px 4px;
-}
-
-.section .section-body {
-  margin-left: 6px;
 }
 
 .heading {
@@ -27,42 +25,11 @@ body {
   margin: 0 0 6px 0;
 }
 
-.heading-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.section .section-body {
+  margin-left: 6px;
 }
 
-.heading-row .heading {
-  margin: 0;
-  line-height: 1.2;
-}
-
-.text-button {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #1f2430;
-  transition: background 0.15s ease, border 0.15s ease;
-}
-
-.text-button:hover {
-  background: #eef1f6;
-  border-color: #bbb;
-}
-
-.text-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  background: #f5f5f5;
-  color: #888;
-  border-color: #ddd;
-}
-
+/* 設定: トグル */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -87,11 +54,6 @@ body {
   transition: background 0.15s ease;
 }
 
-.toggle:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 .toggle::after {
   content: "";
   position: absolute;
@@ -103,6 +65,11 @@ body {
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s ease;
+}
+
+.toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .toggle.on {
@@ -117,35 +84,7 @@ body {
   background: #8bc897;
 }
 
-.logs {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 200px;
-  overflow-y: auto;
-  padding-right: 2px;
-  margin-left: 6px;
-}
-
-.logs-container {
-  margin-top: 12px;
-}
-
-.log {
-  font-size: 12px;
-  line-height: 1.4;
-  color: #333;
-  border-left: 3px solid #4caf50;
-  padding-left: 8px;
-  word-break: break-word;
-}
-
-.log span {
-  color: #777;
-  font-weight: 600;
-  margin-right: 6px;
-}
-
+/* 設定: 通知音 */
 .sound-section {
   display: flex;
   flex-direction: column;
@@ -191,6 +130,32 @@ body {
 .sound-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.text-button {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #1f2430;
+  transition:
+    background 0.15s ease,
+    border 0.15s ease;
+}
+
+.text-button:hover {
+  background: #eef1f6;
+  border-color: #bbb;
+}
+
+.text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: #f5f5f5;
+  color: #888;
+  border-color: #ddd;
 }
 
 .custom-sound {
@@ -271,4 +236,46 @@ body {
 
 .status-text.error {
   color: #dc3545;
+}
+
+/* 動作ログ */
+.heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.heading-row .heading {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.logs-container {
+  margin-top: 12px;
+}
+
+.logs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 2px;
+  margin-left: 6px;
+}
+
+.log {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #333;
+  border-left: 3px solid #4caf50;
+  padding-left: 8px;
+  word-break: break-word;
+}
+
+.log span {
+  color: #777;
+  font-weight: 600;
+  margin-right: 6px;
 }
