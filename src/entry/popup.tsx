@@ -211,7 +211,7 @@ const App: React.FC = () => {
 
           <div className="sound-section">
             <div className="toggle-row">
-              <span className="toggle-label">停止検出時に通知音を鳴らす</span>
+              <span className="toggle-label">放送停止検出時に音を鳴らす</span>
               <Toggle
                 checked={settings.soundEnabled ?? true}
                 onChange={handleSoundToggle}
