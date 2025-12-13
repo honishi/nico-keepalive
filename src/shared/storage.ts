@@ -10,6 +10,19 @@ const defaultSettings: Settings = {
 const safeStorage: chrome.storage.StorageArea | null =
   typeof chrome !== "undefined" && chrome.storage?.local ? chrome.storage.local : null;
 
+const LOG_LOCK_NAME = "nico-keepalive:logs";
+
+async function withLogLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks =
+    typeof navigator !== "undefined" && "locks" in navigator ? navigator.locks : undefined;
+
+  if (locks?.request) {
+    return locks.request(LOG_LOCK_NAME, fn);
+  }
+
+  return fn();
+}
+
 export async function getSettings(): Promise<Settings> {
   if (!safeStorage) return defaultSettings;
   return new Promise((resolve) => {
@@ -50,11 +63,13 @@ export async function pushLog(
 
   if (!safeStorage) return;
 
-  const current = await getLogs();
-  const updated = [...current, nextEntry].slice(-LOG_MAX);
+  return withLogLock(async () => {
+    const current = await getLogs();
+    const updated = [...current, nextEntry].slice(-LOG_MAX);
 
-  return new Promise((resolve) => {
-    safeStorage.set({ [STORAGE_KEYS.logs]: updated }, () => resolve());
+    await new Promise<void>((resolve) => {
+      safeStorage.set({ [STORAGE_KEYS.logs]: updated }, () => resolve());
+    });
   });
 }
 
