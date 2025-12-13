@@ -23,7 +23,7 @@
 ## ログ / 設定
 - 保存先: `chrome.storage.local`
 - キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）
-- popup で設定変更・表示・クリア可能（無効化時はバッジに `💤` を表示）
+- popup で設定変更・表示・クリア可能（無効化時はバッジに `Zz` を表示）
 
 ## テスト / ビルド
 - テスト: `npm test -- --runInBand`（Jest）。`test/reload-policy.test.ts` あり。

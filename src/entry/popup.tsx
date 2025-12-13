@@ -14,7 +14,7 @@ import { LOG_MAX, LogEntry, Settings } from "../shared/types";
 async function updateBadge(enabled: boolean) {
   if (!chrome?.action?.setBadgeText) return;
   try {
-    await chrome.action.setBadgeText({ text: enabled ? "" : "💤" });
+    await chrome.action.setBadgeText({ text: enabled ? "" : "Zz" });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("Failed to set badge text", e);
