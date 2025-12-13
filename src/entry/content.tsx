@@ -7,6 +7,7 @@ import { getSettings, pushLog } from "../shared/storage";
 declare const __DEV__: boolean;
 
 const TICK_INTERVAL_MS = 5_000;
+const WARMUP_SKIP_MS = 60_000; // tick 初回開始からこの時間は監視処理をスキップする
 const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状態がこの時間続くと停止扱い
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
 const TOAST_ID = "nico-keepalive-toast";
@@ -21,6 +22,7 @@ let lastTimeChangeAtMs = Date.now(); // 壁時計ベースで最後に currentTi
 let lastObservedCurrentTimeSec = 0; // video.currentTime の最後の観測値（秒）
 let notificationAsked = false;
 let tickCount = 0;
+let firstTickAtMs: number | undefined;
 let providerName: string | undefined;
 let isOnAir = false; // メタ情報取得失敗時は監視を開始しない
 
@@ -94,6 +96,28 @@ function tick() {
   const paused = video.paused;
   const ended = video.ended;
 
+  // 3) tick カウンタを単調増加させる（ログ出力の間引き判定にも使う）
+  tickCount += 1;
+
+  // 4) tick 初回開始から 60 秒はウォームアップとして監視処理をスキップする（ログを出して early return）
+  if (firstTickAtMs === undefined) {
+    firstTickAtMs = nowMs;
+  }
+  if (nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
+    // スキップ期間中も基準は更新しておく（スキップ明けに誤検知しないため）
+    lastObservedCurrentTimeSec = currentTimeSec;
+    lastTimeChangeAtMs = nowMs;
+
+    const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
+    // eslint-disable-next-line no-console
+    console.log(
+      `[nico-keepalive/content] warmup: 監視をスキップします (残り ${Math.ceil(
+        remainingMs / 1000,
+      )} 秒)`,
+    );
+    return;
+  }
+
   // デバッグ: 毎 tick の状態を出力（currentTime / paused / ended）
   // eslint-disable-next-line no-console
   console.log(
@@ -102,13 +126,12 @@ function tick() {
     )} paused=${paused} ended=${ended}`,
   );
 
-  // 3) tick カウンタを単調増加させ、一定間隔でログを出す（paused/ended 中は除外）
-  tickCount += 1;
+  // 5) 一定間隔でログを出す（paused/ended 中は除外）
   if (!paused && !ended && tickCount % 100 === 0) {
     logInfo(`モニターしています...`);
   }
 
-  // 4) 一時停止/終了中は「停止」と誤検知しないよう、
+  // 6) 一時停止/終了中は「停止」と誤検知しないよう、
   //    監視基準（currentTime / 最終変化時刻）をリセットして終了する
   if (paused || ended) {
     lastObservedCurrentTimeSec = currentTimeSec;
@@ -116,7 +139,7 @@ function tick() {
     return;
   }
 
-  // 5) currentTime の変化量を確認して「動いているか」を判定する
+  // 7) currentTime の変化量を確認して「動いているか」を判定する
   //    - 通常再生（前進）/ シーク（前後ジャンプ）は区別せず、変化していれば "動いている" とみなす
   //    - `Math.abs(delta)` で前進/後退どちらの変化も対象にし、
   //      `TIME_CHANGE_EPSILON_SEC` 未満の微小揺れ（±）はノイズとして無視する
@@ -128,13 +151,13 @@ function tick() {
     return;
   }
 
-  // 6) 一定時間 currentTime が変わらなければ「停止」とみなす（閾値内なら何もしない）
+  // 8) 一定時間 currentTime が変わらなければ「停止」とみなす（閾値内なら何もしない）
   const isWithinStallThreshold = nowMs - lastTimeChangeAtMs < NO_TIME_CHANGE_THRESHOLD_MS;
   if (isWithinStallThreshold) {
     return;
   }
 
-  // 7) 停止確定: カウントダウン〜通知〜リロードは handleStall に委譲
+  // 9) 停止確定: カウントダウン〜通知〜リロードは handleStall に委譲
   handleStall(nowMs);
 }
 
