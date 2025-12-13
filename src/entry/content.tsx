@@ -81,17 +81,20 @@ function findVideo(): HTMLVideoElement | null {
 }
 
 function tick() {
+  // 1) 監視の前提チェック（拡張が無効 / video がまだ無い / currentTime が取れない等）
   if (!enabled) return;
   const video = findVideo();
   if (!video || isNaN(video.currentTime)) {
     return;
   }
 
+  // 2) この tick で使うスナップショットを取得（以降はこれを基準に判定する）
   const nowMs = Date.now();
   const currentTimeSec = video.currentTime;
   const paused = video.paused;
   const ended = video.ended;
-  // Debug: log currentTime, paused, ended state
+
+  // デバッグ: 毎 tick の状態を出力（currentTime / paused / ended）
   // eslint-disable-next-line no-console
   console.log(
     `[nico-keepalive/content] currentTime=${currentTimeSec.toFixed(
@@ -99,32 +102,32 @@ function tick() {
     )} paused=${paused} ended=${ended}`,
   );
 
-  // Set heartbeat baseline on first active tick
+  // 3) 監視が動いていることの定期ログ（paused/ended 中は除外）
+  //    - 最初は基準時刻だけをセット
+  //    - 以降は 1 分に 1 回ログを出す
   if (!paused && !ended && lastHeartbeatLogAtMs === 0) {
     lastHeartbeatLogAtMs = nowMs;
   }
 
-  // Heartbeat log: once per minute while monitoring and not paused/ended (skip very first tick)
   if (!paused && !ended && lastHeartbeatLogAtMs !== 0 && nowMs - lastHeartbeatLogAtMs >= 60_000) {
     logInfo(`モニターしています...`);
     lastHeartbeatLogAtMs = nowMs;
   }
 
+  // 4) 一時停止/終了中は「停止」と誤検知しないよう、
+  //    監視基準（currentTime / 最終変化時刻 / ハートビート）をリセットして終了する
   if (paused || ended) {
-    // 一時停止・終了中は監視基準をリセットして、再開直後の誤検知を防ぐ
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
-    lastHeartbeatLogAtMs = 0; // 再開時にハートビート基準を取り直す
+    lastHeartbeatLogAtMs = 0;
     return;
   }
 
+  // 5) currentTime の変化量を確認して「動いているか」を判定する
+  //    - 通常再生（前進）/ シーク（前後ジャンプ）は区別せず、変化していれば "動いている" とみなす
+  //    - `Math.abs(delta)` で前進/後退どちらの変化も対象にし、
+  //      `TIME_CHANGE_EPSILON_SEC` 未満の微小揺れ（±）はノイズとして無視する
   const deltaSec = currentTimeSec - lastObservedCurrentTimeSec;
-
-  // 停止検出では「通常再生（前進）」と「シーク（前後のジャンプ）」を区別する必要がなく、
-  // どちらも currentTime が変化しているなら "動いている" とみなして基準を更新する。
-  //
-  // `Math.abs` で変化量の絶対値を見ることで、前進/後退どちらの変化も検知対象とし、
-  // その上で `TIME_CHANGE_EPSILON_SEC` 未満の微小揺れ（±）はノイズとして無視する。
   const hasTimeMoved = Math.abs(deltaSec) > TIME_CHANGE_EPSILON_SEC;
   if (hasTimeMoved) {
     lastObservedCurrentTimeSec = currentTimeSec;
@@ -132,12 +135,13 @@ function tick() {
     return;
   }
 
-  // 停滞判定
+  // 6) 一定時間 currentTime が変わらなければ「停止」とみなす（閾値内なら何もしない）
   const isWithinStallThreshold = nowMs - lastTimeChangeAtMs < NO_TIME_CHANGE_THRESHOLD_MS;
   if (isWithinStallThreshold) {
     return;
   }
 
+  // 7) 停止確定: カウントダウン〜通知〜リロードは handleStall に委譲
   handleStall(nowMs);
 }
 
