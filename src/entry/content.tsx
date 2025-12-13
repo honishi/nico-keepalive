@@ -20,7 +20,7 @@ let countdownTimer: number | undefined;
 let lastTimeChangeAtMs = Date.now(); // 壁時計ベースで最後に currentTime の変化を確認した時刻
 let lastObservedCurrentTimeSec = 0; // video.currentTime の最後の観測値（秒）
 let notificationAsked = false;
-let lastHeartbeatLogAtMs = 0;
+let tickCount = 0;
 let providerName: string | undefined;
 let isOnAir = false; // メタ情報取得失敗時は監視を開始しない
 
@@ -102,24 +102,17 @@ function tick() {
     )} paused=${paused} ended=${ended}`,
   );
 
-  // 3) 監視が動いていることの定期ログ（paused/ended 中は除外）
-  //    - 最初は基準時刻だけをセット
-  //    - 以降は 1 分に 1 回ログを出す
-  if (!paused && !ended && lastHeartbeatLogAtMs === 0) {
-    lastHeartbeatLogAtMs = nowMs;
-  }
-
-  if (!paused && !ended && lastHeartbeatLogAtMs !== 0 && nowMs - lastHeartbeatLogAtMs >= 60_000) {
+  // 3) tick カウンタを単調増加させ、一定間隔でログを出す（paused/ended 中は除外）
+  tickCount += 1;
+  if (!paused && !ended && tickCount % 100 === 0) {
     logInfo(`モニターしています...`);
-    lastHeartbeatLogAtMs = nowMs;
   }
 
   // 4) 一時停止/終了中は「停止」と誤検知しないよう、
-  //    監視基準（currentTime / 最終変化時刻 / ハートビート）をリセットして終了する
+  //    監視基準（currentTime / 最終変化時刻）をリセットして終了する
   if (paused || ended) {
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
-    lastHeartbeatLogAtMs = 0;
     return;
   }
 
