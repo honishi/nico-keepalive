@@ -126,7 +126,7 @@ function tick() {
   );
 
   // 5) 一定間隔でログを出す（paused/ended 中は除外）
-  if (!paused && !ended && tickCount % 100 === 0) {
+  if (!paused && !ended && tickCount % 20 === 0) {
     logInfo(`モニターしています...`);
   }
 
