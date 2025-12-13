@@ -117,28 +117,63 @@ const App: React.FC = () => {
   }, []);
 
   const handleClearLogs = async () => {
-    await clearLogs();
-    setLogs([]);
+    try {
+      await clearLogs();
+      setLogs([]);
+    } catch (err) {
+      console.error("Failed to clear logs", err);
+      showSoundMessage("ログのクリアに失敗しました。", "error");
+    }
   };
 
   const handleToggle = async (next: boolean) => {
+    const previous = settings;
     const nextSettings = { ...settings, enabled: next };
     setSettingsState(nextSettings);
-    await setSettings(nextSettings);
-    await updateBadge(next);
+    try {
+      await setSettings(nextSettings);
+      await updateBadge(next);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showSoundMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
   };
 
   const handleSoundToggle = async (next: boolean) => {
+    const previous = settings;
     const nextSettings = { ...settings, soundEnabled: next };
     setSettingsState(nextSettings);
-    await setSettings(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showSoundMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
   };
 
   const handleVolumeChange = async (value: number) => {
+    const previous = settings;
     const clamped = clampVolume(value);
     const nextSettings = { ...settings, soundVolume: clamped };
     setSettingsState(nextSettings);
-    await setSettings(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showSoundMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
   };
 
   const showSoundMessage = (message: string, type: "info" | "error" = "info") => {
@@ -157,27 +192,54 @@ const App: React.FC = () => {
       return;
     }
 
+    let dataUrl: string;
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const nextSettings = {
-        ...settings,
-        customSound: { fileName: file.name, dataUrl },
-      };
-      setSettingsState(nextSettings);
+      dataUrl = await readFileAsDataUrl(file);
+    } catch (err) {
+      console.error("Failed to load custom sound", err);
+      showSoundMessage(
+        "音声ファイルの読み込みに失敗しました。別の音声ファイルを選択してください。",
+        "error",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    const previous = settings;
+    const nextSettings = {
+      ...previous,
+      customSound: { fileName: file.name, dataUrl },
+    };
+    setSettingsState(nextSettings);
+    try {
       await setSettings(nextSettings);
       showSoundMessage(`カスタム音を保存しました: ${file.name}`, "info");
     } catch (err) {
-      console.error("Failed to load custom sound", err);
-      showSoundMessage("音声の読み込みに失敗しました。別の mp3 を選択してください。", "error");
+      console.error("Failed to save custom sound", err);
+      setSettingsState(previous);
+      showSoundMessage(
+        "カスタム音の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。別の音声ファイルを選択してください。",
+        "error",
+      );
       event.target.value = "";
     }
   };
 
   const handleClearCustomSound = async () => {
+    const previous = settings;
     const nextSettings = { ...settings, customSound: null };
     setSettingsState(nextSettings);
-    await setSettings(nextSettings);
-    showSoundMessage("デフォルト音に戻しました", "info");
+    try {
+      await setSettings(nextSettings);
+      showSoundMessage("デフォルト音に戻しました", "info");
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showSoundMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
   };
 
   const handleTestPlay = async () => {
@@ -204,6 +266,7 @@ const App: React.FC = () => {
       <section className="section">
         <p className="heading">設定</p>
         <div className="section-body">
+          {soundMessage && <p className={`status-text ${soundMessageType}`}>{soundMessage}</p>}
           <div className="toggle-row">
             <span className="toggle-label">放送停止を検出し自動リロードする</span>
             <Toggle checked={settings.enabled} onChange={handleToggle} />
@@ -273,7 +336,6 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
-              {soundMessage && <p className={`status-text ${soundMessageType}`}>{soundMessage}</p>}
             </div>
           </div>
         </div>

@@ -27,6 +27,12 @@ export async function getSettings(): Promise<Settings> {
   if (!safeStorage) return defaultSettings;
   return new Promise((resolve) => {
     safeStorage.get(STORAGE_KEYS.settings, (items) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        console.warn("[nico-keepalive/storage] Failed to get settings", err);
+        resolve(defaultSettings);
+        return;
+      }
       const stored = items[STORAGE_KEYS.settings] as Settings | undefined;
       resolve({ ...defaultSettings, ...stored });
     });
@@ -35,8 +41,15 @@ export async function getSettings(): Promise<Settings> {
 
 export async function setSettings(settings: Settings): Promise<void> {
   if (!safeStorage) return;
-  return new Promise((resolve) => {
-    safeStorage.set({ [STORAGE_KEYS.settings]: settings }, () => resolve());
+  return new Promise((resolve, reject) => {
+    safeStorage.set({ [STORAGE_KEYS.settings]: settings }, () => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        reject(new Error(err.message));
+        return;
+      }
+      resolve();
+    });
   });
 }
 
@@ -44,6 +57,12 @@ export async function getLogs(): Promise<LogEntry[]> {
   if (!safeStorage) return [];
   return new Promise((resolve) => {
     safeStorage.get(STORAGE_KEYS.logs, (items) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        console.warn("[nico-keepalive/storage] Failed to get logs", err);
+        resolve([]);
+        return;
+      }
       const stored = items[STORAGE_KEYS.logs] as LogEntry[] | undefined;
       resolve(stored ?? []);
     });
@@ -68,14 +87,27 @@ export async function pushLog(
     const updated = [...current, nextEntry].slice(-LOG_MAX);
 
     await new Promise<void>((resolve) => {
-      safeStorage.set({ [STORAGE_KEYS.logs]: updated }, () => resolve());
+      safeStorage.set({ [STORAGE_KEYS.logs]: updated }, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          console.warn("[nico-keepalive/storage] Failed to save logs", err);
+        }
+        resolve();
+      });
     });
   });
 }
 
 export async function clearLogs(): Promise<void> {
   if (!safeStorage) return;
-  return new Promise((resolve) => {
-    safeStorage.set({ [STORAGE_KEYS.logs]: [] }, () => resolve());
+  return new Promise((resolve, reject) => {
+    safeStorage.set({ [STORAGE_KEYS.logs]: [] }, () => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        reject(new Error(err.message));
+        return;
+      }
+      resolve();
+    });
   });
 }
