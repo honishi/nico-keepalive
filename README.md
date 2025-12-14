@@ -6,7 +6,7 @@ A Chrome extension that keeps Niconico Live (Niconama) streams alive by detectin
 
 ## Installation
 
-* [Chrome Web Store](https://chrome.google.com/webstore/detail/xxx)
+* [Chrome Web Store](https://chrome.google.com/webstore/detail/fdhjiepbemmboedlbpmpponhnhmcbdoe)
 
 ## Build
 
