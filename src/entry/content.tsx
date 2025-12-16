@@ -331,6 +331,12 @@ async function restoreFullscreenAfterReload() {
       const result = await tryRestoreFullscreenWithRetry(5, 500);
       toggled = result.toggled;
       succeeded = result.succeeded;
+
+      if (succeeded) {
+        await sleep(500);
+        document.body?.focus();
+        simulateMouseEnterLeave();
+      }
     } else {
       succeeded = true;
     }
@@ -343,6 +349,32 @@ async function restoreFullscreenAfterReload() {
     // eslint-disable-next-line no-console
     console.warn("[nico-keepalive/content] failed to restore fullscreen state", err);
   }
+}
+
+function simulateMouseEnterLeave() {
+  const target = document;
+
+  const centerX = Math.round(window.innerWidth / 2);
+  const centerY = Math.round(window.innerHeight / 2);
+
+  target.dispatchEvent(
+    new MouseEvent("mouseover", { bubbles: true, clientX: centerX, clientY: centerY }),
+  );
+  target.dispatchEvent(
+    new MouseEvent("mouseenter", { bubbles: false, clientX: centerX, clientY: centerY }),
+  );
+
+  setTimeout(() => {
+    target.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, clientX: -5, clientY: -5 }));
+    target.dispatchEvent(
+      new MouseEvent("mouseleave", { bubbles: false, clientX: -5, clientY: -5 }),
+    );
+  }, 100);
+
+  // ついでにウィンドウ外へマウス移動したことを伝える
+  setTimeout(() => {
+    window.dispatchEvent(new MouseEvent("mousemove", { clientX: -5, clientY: -5 }));
+  }, 120);
 }
 
 function currentProgramId(): string | undefined {
