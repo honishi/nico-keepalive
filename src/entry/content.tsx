@@ -1,7 +1,7 @@
 import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, ProgramStateMap, Settings } from "../shared/types";
-import { getProgramStateMap, getSettings, pushLog, setProgramStateMap } from "../shared/storage";
+import { getSettings, pushLog, updateProgramStateMap } from "../shared/storage";
 import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 
 declare const __DEV__: boolean;
@@ -267,9 +267,15 @@ async function saveFullscreenStateBeforeReload() {
   if (!programId) return;
   try {
     const now = Date.now();
-    const map = cleanupProgramStates(await getProgramStateMap(), now);
-    map[programId] = { ...(map[programId] ?? {}), fullscreen: isFullscreen(), updatedAt: now };
-    await setProgramStateMap(map);
+    await updateProgramStateMap((map) => {
+      const cleaned = cleanupProgramStates(map, now);
+      cleaned[programId] = {
+        ...(cleaned[programId] ?? {}),
+        fullscreen: isFullscreen(),
+        updatedAt: now,
+      };
+      return { map: cleaned };
+    });
     // eslint-disable-next-line no-console
     console.log(`[nico-keepalive/content] saved fullscreen state for ${programId}`);
   } catch (err) {
@@ -283,21 +289,21 @@ async function restoreFullscreenAfterReload() {
   if (!programId) return;
   try {
     const now = Date.now();
-    const map = cleanupProgramStates(await getProgramStateMap(), now);
-    const state = map[programId];
+    const fullscreenNeeded = await updateProgramStateMap((map) => {
+      const cleaned = cleanupProgramStates(map, now);
+      const state = cleaned[programId];
+      delete cleaned[programId];
+      return { map: cleaned, result: state?.fullscreen === true };
+    });
 
     let toggled = false;
-    if (state?.fullscreen === true) {
+    if (fullscreenNeeded) {
       toggled = toggleFullscreen();
     }
 
-    // 1 度使ったら消す
-    delete map[programId];
-    await setProgramStateMap(map);
-
     // eslint-disable-next-line no-console
     console.log(
-      `[nico-keepalive/content] restore fullscreen for ${programId}: requested=${state?.fullscreen} toggled=${toggled}`,
+      `[nico-keepalive/content] restore fullscreen for ${programId}: requested=${fullscreenNeeded} toggled=${toggled}`,
     );
   } catch (err) {
     // eslint-disable-next-line no-console

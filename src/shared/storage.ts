@@ -11,13 +11,14 @@ const safeStorage: chrome.storage.StorageArea | null =
   typeof chrome !== "undefined" && chrome.storage?.local ? chrome.storage.local : null;
 
 const LOG_LOCK_NAME = "nico-keepalive:logs";
+const PROGRAM_STATE_LOCK_NAME = "nico-keepalive:program-state";
 
-async function withLogLock<T>(fn: () => Promise<T>): Promise<T> {
+async function withStorageLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const locks =
     typeof navigator !== "undefined" && "locks" in navigator ? navigator.locks : undefined;
 
   if (locks?.request) {
-    return locks.request(LOG_LOCK_NAME, fn);
+    return locks.request(name, fn);
   }
 
   return fn();
@@ -82,7 +83,7 @@ export async function pushLog(
 
   if (!safeStorage) return;
 
-  return withLogLock(async () => {
+  return withStorageLock(LOG_LOCK_NAME, async () => {
     const current = await getLogs();
     const updated = [...current, nextEntry].slice(-LOG_MAX);
 
@@ -112,7 +113,7 @@ export async function clearLogs(): Promise<void> {
   });
 }
 
-export async function getProgramStateMap(): Promise<ProgramStateMap> {
+async function getProgramStateMap(): Promise<ProgramStateMap> {
   if (!safeStorage) return {};
   return new Promise((resolve) => {
     safeStorage.get(STORAGE_KEYS.programStateMap, (items) => {
@@ -128,7 +129,7 @@ export async function getProgramStateMap(): Promise<ProgramStateMap> {
   });
 }
 
-export async function setProgramStateMap(map: ProgramStateMap): Promise<void> {
+async function setProgramStateMap(map: ProgramStateMap): Promise<void> {
   if (!safeStorage) return;
   return new Promise((resolve, reject) => {
     safeStorage.set({ [STORAGE_KEYS.programStateMap]: map }, () => {
@@ -139,5 +140,18 @@ export async function setProgramStateMap(map: ProgramStateMap): Promise<void> {
       }
       resolve();
     });
+  });
+}
+
+export async function updateProgramStateMap<T>(
+  updater: (
+    current: ProgramStateMap,
+  ) => { map: ProgramStateMap; result?: T } | Promise<{ map: ProgramStateMap; result?: T }>,
+): Promise<T | undefined> {
+  return withStorageLock(PROGRAM_STATE_LOCK_NAME, async () => {
+    const current = await getProgramStateMap();
+    const { map, result } = await updater(current);
+    await setProgramStateMap(map);
+    return result;
   });
 }
