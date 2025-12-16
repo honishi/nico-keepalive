@@ -276,18 +276,10 @@ async function tryRestoreFullscreenWithRetry(
   intervalMs: number,
 ): Promise<{ toggled: boolean; succeeded: boolean }> {
   for (let i = 0; i < maxAttempts; i += 1) {
-    // すでにフルスクなら成功扱いで終了
-    if (isFullscreen()) {
-      return { toggled: false, succeeded: true };
-    }
-
+    // ボタンが生成されるまで一定回数待つ
     const clicked = toggleFullscreen();
     if (clicked) {
-      // DOM 反映を待って判定
-      await sleep(150);
-      if (isFullscreen()) {
-        return { toggled: true, succeeded: true };
-      }
+      return { toggled: true, succeeded: true };
     }
 
     if (i < maxAttempts - 1) {
