@@ -262,6 +262,42 @@ function cleanupProgramStates(map: ProgramStateMap, now: number): ProgramStateMa
   return cleaned;
 }
 
+function waitForLoadEvent(): Promise<void> {
+  if (document.readyState === "complete") return Promise.resolve();
+  return new Promise((resolve) => window.addEventListener("load", () => resolve(), { once: true }));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function tryRestoreFullscreenWithRetry(
+  maxAttempts: number,
+  intervalMs: number,
+): Promise<{ toggled: boolean; succeeded: boolean }> {
+  for (let i = 0; i < maxAttempts; i += 1) {
+    // すでにフルスクなら成功扱いで終了
+    if (isFullscreen()) {
+      return { toggled: false, succeeded: true };
+    }
+
+    const clicked = toggleFullscreen();
+    if (clicked) {
+      // DOM 反映を待って判定
+      await sleep(150);
+      if (isFullscreen()) {
+        return { toggled: true, succeeded: true };
+      }
+    }
+
+    if (i < maxAttempts - 1) {
+      await sleep(intervalMs);
+    }
+  }
+
+  return { toggled: false, succeeded: false };
+}
+
 async function saveFullscreenStateBeforeReload() {
   const programId = currentProgramId();
   if (!programId) return;
@@ -288,6 +324,7 @@ async function restoreFullscreenAfterReload() {
   const programId = currentProgramId();
   if (!programId) return;
   try {
+    await waitForLoadEvent();
     const now = Date.now();
     const fullscreenNeeded = await updateProgramStateMap((map) => {
       const cleaned = cleanupProgramStates(map, now);
@@ -297,13 +334,18 @@ async function restoreFullscreenAfterReload() {
     });
 
     let toggled = false;
+    let succeeded = false;
     if (fullscreenNeeded) {
-      toggled = toggleFullscreen();
+      const result = await tryRestoreFullscreenWithRetry(5, 500);
+      toggled = result.toggled;
+      succeeded = result.succeeded;
+    } else {
+      succeeded = true;
     }
 
     // eslint-disable-next-line no-console
     console.log(
-      `[nico-keepalive/content] restore fullscreen for ${programId}: requested=${fullscreenNeeded} toggled=${toggled}`,
+      `[nico-keepalive/content] restore fullscreen for ${programId}: requested=${fullscreenNeeded} toggled=${toggled} succeeded=${succeeded}`,
     );
   } catch (err) {
     // eslint-disable-next-line no-console
