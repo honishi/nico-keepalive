@@ -334,7 +334,7 @@ async function restoreFullscreenAfterReload() {
 
       if (succeeded) {
         await sleep(500);
-        document.body?.focus();
+        // なにもしないとプレイヤーのコントローラ部分が表示されっぱなしになるので、それを消すためにマウスを動かす。
         simulateMouseEnterLeave();
       }
     } else {
