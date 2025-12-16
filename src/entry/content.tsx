@@ -352,29 +352,18 @@ async function restoreFullscreenAfterReload() {
 }
 
 function simulateMouseEnterLeave() {
-  const target = document;
-
   const centerX = Math.round(window.innerWidth / 2);
   const centerY = Math.round(window.innerHeight / 2);
 
-  target.dispatchEvent(
+  document.dispatchEvent(
     new MouseEvent("mouseover", { bubbles: true, clientX: centerX, clientY: centerY }),
-  );
-  target.dispatchEvent(
-    new MouseEvent("mouseenter", { bubbles: false, clientX: centerX, clientY: centerY }),
   );
 
   setTimeout(() => {
-    target.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, clientX: -5, clientY: -5 }));
-    target.dispatchEvent(
+    document.dispatchEvent(
       new MouseEvent("mouseleave", { bubbles: false, clientX: -5, clientY: -5 }),
     );
   }, 100);
-
-  // ついでにウィンドウ外へマウス移動したことを伝える
-  setTimeout(() => {
-    window.dispatchEvent(new MouseEvent("mousemove", { clientX: -5, clientY: -5 }));
-  }, 120);
 }
 
 function currentProgramId(): string | undefined {
