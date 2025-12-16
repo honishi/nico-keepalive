@@ -1,4 +1,4 @@
-import { LOG_MAX, LogEntry, Settings, STORAGE_KEYS } from "./types";
+import { LOG_MAX, LogEntry, ProgramStateMap, Settings, STORAGE_KEYS } from "./types";
 
 const defaultSettings: Settings = {
   enabled: true,
@@ -102,6 +102,36 @@ export async function clearLogs(): Promise<void> {
   if (!safeStorage) return;
   return new Promise((resolve, reject) => {
     safeStorage.set({ [STORAGE_KEYS.logs]: [] }, () => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        reject(new Error(err.message));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+export async function getProgramStateMap(): Promise<ProgramStateMap> {
+  if (!safeStorage) return {};
+  return new Promise((resolve) => {
+    safeStorage.get(STORAGE_KEYS.programStateMap, (items) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        console.warn("[nico-keepalive/storage] Failed to get program state map", err);
+        resolve({});
+        return;
+      }
+      const stored = items[STORAGE_KEYS.programStateMap] as ProgramStateMap | undefined;
+      resolve(stored ?? {});
+    });
+  });
+}
+
+export async function setProgramStateMap(map: ProgramStateMap): Promise<void> {
+  if (!safeStorage) return;
+  return new Promise((resolve, reject) => {
+    safeStorage.set({ [STORAGE_KEYS.programStateMap]: map }, () => {
       const err = chrome.runtime.lastError;
       if (err) {
         reject(new Error(err.message));

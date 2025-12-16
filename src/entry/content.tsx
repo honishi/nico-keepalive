@@ -1,7 +1,7 @@
 import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
-import { CustomSound, Settings } from "../shared/types";
-import { getSettings, pushLog } from "../shared/storage";
+import { CustomSound, ProgramStateMap, Settings } from "../shared/types";
+import { getProgramStateMap, getSettings, pushLog, setProgramStateMap } from "../shared/storage";
 import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 
 declare const __DEV__: boolean;
@@ -12,6 +12,7 @@ const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
 const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
+const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let soundEnabled = true;
@@ -27,6 +28,7 @@ let providerName: string | undefined;
 let isOnAir = false; // メタ情報取得失敗時は監視を開始しない
 
 async function init() {
+  await restoreFullscreenAfterReload();
   const settings = await getSettings();
   applySettings(settings);
   refreshProgramMeta();
@@ -168,6 +170,7 @@ function handleStall(now: number) {
   // ページをリロードすると content script 自体が再インジェクトされるため、
   // ここでは単発リロードだけを実行する。
 
+  void saveFullscreenStateBeforeReload();
   logInfo("映像停止を検知、5秒後にリロードします");
   playReloadSound();
   showCountdown(COUNTDOWN_MS);
@@ -244,6 +247,61 @@ function hideToast() {
   const existing = document.getElementById(TOAST_ID);
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
+  }
+}
+
+function cleanupProgramStates(map: ProgramStateMap, now: number): ProgramStateMap {
+  const cleaned: ProgramStateMap = {};
+  Object.entries(map).forEach(([programId, state]) => {
+    const updatedAt = typeof state?.updatedAt === "number" ? state.updatedAt : 0;
+    if (updatedAt === 0) return;
+    if (now - updatedAt <= PROGRAM_STATE_TTL_MS) {
+      cleaned[programId] = state;
+    }
+  });
+  return cleaned;
+}
+
+async function saveFullscreenStateBeforeReload() {
+  const programId = currentProgramId();
+  if (!programId) return;
+  try {
+    const now = Date.now();
+    const map = cleanupProgramStates(await getProgramStateMap(), now);
+    map[programId] = { ...(map[programId] ?? {}), fullscreen: isFullscreen(), updatedAt: now };
+    await setProgramStateMap(map);
+    // eslint-disable-next-line no-console
+    console.log(`[nico-keepalive/content] saved fullscreen state for ${programId}`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[nico-keepalive/content] failed to save fullscreen state", err);
+  }
+}
+
+async function restoreFullscreenAfterReload() {
+  const programId = currentProgramId();
+  if (!programId) return;
+  try {
+    const now = Date.now();
+    const map = cleanupProgramStates(await getProgramStateMap(), now);
+    const state = map[programId];
+
+    let toggled = false;
+    if (state?.fullscreen === true) {
+      toggled = toggleFullscreen();
+    }
+
+    // 1 度使ったら消す
+    delete map[programId];
+    await setProgramStateMap(map);
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[nico-keepalive/content] restore fullscreen for ${programId}: requested=${state?.fullscreen} toggled=${toggled}`,
+    );
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[nico-keepalive/content] failed to restore fullscreen state", err);
   }
 }
 
