@@ -14,6 +14,15 @@ export type CustomSound = {
   dataUrl: string; // Base64 data URL
 };
 
+export type ProgramState = {
+  fullscreen?: boolean;
+  updatedAt?: number;
+  // 将来拡張用に他の状態もここへ追加する
+  [key: string]: unknown;
+};
+
+export type ProgramStateMap = Record<string, ProgramState>;
+
 export type Settings = {
   enabled: boolean;
   soundEnabled?: boolean;
@@ -24,6 +33,7 @@ export type Settings = {
 export const STORAGE_KEYS = {
   settings: "settings",
   logs: "logs",
+  programStateMap: "programStateMap",
 } as const;
 
 export const LOG_MAX = 1_000;
