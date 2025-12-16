@@ -331,6 +331,12 @@ async function restoreFullscreenAfterReload() {
       const result = await tryRestoreFullscreenWithRetry(5, 500);
       toggled = result.toggled;
       succeeded = result.succeeded;
+
+      if (succeeded) {
+        await sleep(500);
+        // なにもしないとプレイヤーのコントローラ部分が表示されっぱなしになるので、それを消すためにマウスを動かす。
+        simulateMouseEnterLeave();
+      }
     } else {
       succeeded = true;
     }
@@ -343,6 +349,21 @@ async function restoreFullscreenAfterReload() {
     // eslint-disable-next-line no-console
     console.warn("[nico-keepalive/content] failed to restore fullscreen state", err);
   }
+}
+
+function simulateMouseEnterLeave() {
+  const centerX = Math.round(window.innerWidth / 2);
+  const centerY = Math.round(window.innerHeight / 2);
+
+  document.dispatchEvent(
+    new MouseEvent("mouseover", { bubbles: true, clientX: centerX, clientY: centerY }),
+  );
+
+  setTimeout(() => {
+    document.dispatchEvent(
+      new MouseEvent("mouseleave", { bubbles: false, clientX: -5, clientY: -5 }),
+    );
+  }, 100);
 }
 
 function currentProgramId(): string | undefined {
