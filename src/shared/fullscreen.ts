@@ -1,5 +1,4 @@
 const FULLSCREEN_BUTTON_SELECTOR = "button[class^='___fullscreen-button___']";
-const DATA_TOGGLE_TRUE = "true";
 
 /**
  * プレイヤーのフルスクリーンボタン要素を取得する
@@ -17,7 +16,7 @@ function getFullscreenButton(): HTMLButtonElement | null {
  */
 export function isFullscreen(): boolean {
   const button = getFullscreenButton();
-  return (button?.getAttribute("data-toggle-state") ?? "") === DATA_TOGGLE_TRUE;
+  return (button?.getAttribute("data-toggle-state") ?? "") === "true";
 }
 
 /**
