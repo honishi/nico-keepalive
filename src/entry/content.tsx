@@ -2,6 +2,7 @@ import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, Settings } from "../shared/types";
 import { getSettings, pushLog } from "../shared/storage";
+import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 
 declare const __DEV__: boolean;
 
@@ -297,6 +298,18 @@ if (__DEV__) {
       const toast = ensureToast();
       toast.textContent = "デバッグ: トースト表示の確認";
       setTimeout(hideToast, 3000);
+    }
+  });
+
+  // Debug: Ctrl+D でフルスク状態をログ出力、Ctrl+F でフルスクをトグル
+  window.addEventListener("keydown", (e) => {
+    if (!e.ctrlKey || e.altKey || e.metaKey) return;
+    const key = e.key.toLowerCase();
+    if (key === "d") {
+      console.log(`[nico-keepalive/dev] fullscreen=${isFullscreen()}`);
+    } else if (key === "f") {
+      const toggled = toggleFullscreen();
+      console.log(`[nico-keepalive/dev] fullscreen toggled=${toggled} now=${isFullscreen()}`);
     }
   });
 
