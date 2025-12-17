@@ -171,7 +171,7 @@ function handleStall(now: number) {
   // ここでは単発リロードだけを実行する。
 
   void saveFullscreenStateBeforeReload();
-  logInfo("映像停止を検知、5秒後にリロードします");
+  logInfo(`映像停止を検知、${Math.ceil(COUNTDOWN_MS / 1000)}秒後にリロードします`);
   playReloadSound();
   showCountdown(COUNTDOWN_MS);
   countdownTimer = window.setTimeout(() => {
