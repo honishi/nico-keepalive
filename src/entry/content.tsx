@@ -33,7 +33,7 @@ async function init() {
   applySettings(settings);
   refreshProgramMeta();
   if (!isOnAir) {
-    logInfo("モニターをスキップします (Offline)");
+    logInfo("モニターをスキップします (Off-air)");
     return;
   }
   if (!enabled) {
@@ -398,7 +398,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (wasEnabled !== enabled) {
     if (enabled) {
       if (!isOnAir) {
-        logInfo("モニターをスキップします (Offline)");
+        logInfo("モニターをスキップします (Off-air)");
         return;
       }
       logInfo("拡張が有効化されました");
