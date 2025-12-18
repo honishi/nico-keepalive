@@ -1,11 +1,76 @@
+/* カラートークン（ライト / ダーク） */
+:root {
+  color-scheme: light dark;
+
+  --color-bg: #f6f7fb;
+  --color-fg: #1f2430;
+  --color-fg-strong: #111827;
+  --color-fg-muted: #374151;
+  --color-fg-subtle: #6b7280;
+
+  --color-border: #ccc;
+  --color-border-hover: #bbb;
+  --color-surface: #fff;
+  --color-hover: #eef1f6;
+
+  --color-disabled-bg: #f5f5f5;
+  --color-disabled-fg: #888;
+  --color-disabled-border: #ddd;
+
+  --color-accent: #4caf50;
+  --color-accent-disabled: #8bc897;
+
+  --color-toggle-off: #d7d7d7;
+  --color-toggle-knob: #fff;
+  --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.2);
+
+  --color-log-fg: #333;
+  --color-log-ts: #777;
+
+  --color-info: #2563eb;
+  --color-error: #dc3545;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0b1020;
+    --color-fg: #e5e7eb;
+    --color-fg-strong: #f8fafc;
+    --color-fg-muted: #94a3b8;
+    --color-fg-subtle: #64748b;
+
+    --color-border: #334155;
+    --color-border-hover: #475569;
+    --color-surface: #111827;
+    --color-hover: #1f2937;
+
+    --color-disabled-bg: #0f172a;
+    --color-disabled-fg: #64748b;
+    --color-disabled-border: #1f2937;
+
+    --color-accent: #22c55e;
+    --color-accent-disabled: #16a34a;
+
+    --color-toggle-off: #475569;
+    --color-toggle-knob: #f8fafc;
+    --shadow-float: 0 1px 3px rgba(0, 0, 0, 0.5);
+
+    --color-log-fg: #e5e7eb;
+    --color-log-ts: #94a3b8;
+
+    --color-info: #60a5fa;
+    --color-error: #f87171;
+  }
+}
+
 /* レイアウト（body / root） */
 body {
   width: 500px;
   margin: 0;
   padding: 12px;
   font-family: "Noto Sans JP", system-ui, sans-serif;
-  background: #f6f7fb;
-  color: #1f2430;
+  background: var(--color-bg);
+  color: var(--color-fg);
 }
 
 #root {
@@ -46,7 +111,7 @@ body {
   position: relative;
   width: 44px;
   height: 22px;
-  background: #d7d7d7;
+  background: var(--color-toggle-off);
   border-radius: 999px;
   border: none;
   padding: 0;
@@ -62,8 +127,8 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: var(--color-toggle-knob);
+  box-shadow: var(--shadow-float);
   transition: transform 0.15s ease;
 }
 
@@ -73,7 +138,7 @@ body {
 }
 
 .toggle.on {
-  background: #4caf50;
+  background: var(--color-accent);
 }
 
 .toggle.on::after {
@@ -81,7 +146,7 @@ body {
 }
 
 .toggle.on:disabled {
-  background: #8bc897;
+  background: var(--color-accent-disabled);
 }
 
 /* 設定: 通知音 */
@@ -104,7 +169,7 @@ body {
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #374151;
+  color: var(--color-fg-muted);
 }
 
 .slider-label {
@@ -116,7 +181,7 @@ body {
 }
 
 .slider-block input[type="range"] {
-  accent-color: #4caf50;
+  accent-color: var(--color-accent);
   min-width: 200px;
 }
 
@@ -124,7 +189,7 @@ body {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-fg-subtle);
 }
 
 .sound-actions {
@@ -134,28 +199,28 @@ body {
 
 .text-button {
   background: none;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
-  color: #1f2430;
+  color: var(--color-fg);
   transition:
     background 0.15s ease,
     border 0.15s ease;
 }
 
 .text-button:hover {
-  background: #eef1f6;
-  border-color: #bbb;
+  background: var(--color-hover);
+  border-color: var(--color-border-hover);
 }
 
 .text-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-  background: #f5f5f5;
-  color: #888;
-  border-color: #ddd;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-fg);
+  border-color: var(--color-disabled-border);
 }
 
 .custom-sound {
@@ -176,13 +241,13 @@ body {
   margin: 0;
   font-size: 12px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-fg-strong);
 }
 
 .custom-sound-status {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #374151;
+  color: var(--color-fg-muted);
 }
 
 .custom-sound-buttons {
@@ -199,11 +264,11 @@ body {
   justify-content: center;
   padding: 4px 10px;
   font-size: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--color-surface);
   cursor: pointer;
-  color: #1f2430;
+  color: var(--color-fg);
 }
 
 .file-button input {
@@ -216,9 +281,9 @@ body {
 .file-button.disabled {
   cursor: not-allowed;
   opacity: 0.55;
-  background: #f5f5f5;
-  color: #888;
-  border-color: #ddd;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-fg);
+  border-color: var(--color-disabled-border);
 }
 
 .file-button.disabled input {
@@ -231,11 +296,11 @@ body {
 }
 
 .status-text.info {
-  color: #2563eb;
+  color: var(--color-info);
 }
 
 .status-text.error {
-  color: #dc3545;
+  color: var(--color-error);
 }
 
 /* 動作ログ */
@@ -268,14 +333,18 @@ body {
 .log {
   font-size: 12px;
   line-height: 1.4;
-  color: #333;
-  border-left: 3px solid #4caf50;
+  color: var(--color-log-fg);
+  border-left: 3px solid var(--color-accent);
   padding-left: 8px;
   word-break: break-word;
 }
 
 .log span {
-  color: #777;
+  color: inherit;
   font-weight: 600;
   margin-right: 6px;
+}
+
+.log span.log-prefix {
+  font-weight: 400;
 }

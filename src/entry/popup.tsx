@@ -44,6 +44,16 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     [logs],
   );
 
+  const formatContextProvider = (log: LogEntry) => {
+    if (log.context) {
+      return `[${log.context}]${log.providerName ? ` [${log.providerName}]` : ""}`;
+    }
+    if (log.providerName) {
+      return `[${log.providerName}]`;
+    }
+    return "";
+  };
+
   const formatTs = (ts: number) => {
     const d = new Date(ts);
     const pad = (n: number) => n.toString().padStart(2, "0");
@@ -57,17 +67,18 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   }
   return (
     <div className="logs">
-      {ordered.map((log) => (
-        <div key={log.id} className="log">
-          <span>{formatTs(log.timestamp)}</span>
-          {log.context
-            ? `[${log.context}] ${log.providerName ? `[${log.providerName}] ` : ""}`
-            : log.providerName
-            ? `[${log.providerName}] `
-            : ""}
-          {log.message}
-        </div>
-      ))}
+      {ordered.map((log) => {
+        const prefix = formatContextProvider(log);
+        return (
+          <div key={log.id} className="log">
+            <div className="log-header">
+              <span>{formatTs(log.timestamp)}</span>
+              {prefix ? <span className="log-prefix">{prefix}</span> : null}
+            </div>
+            <div className="log-body">{log.message}</div>
+          </div>
+        );
+      })}
     </div>
   );
 };

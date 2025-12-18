@@ -33,7 +33,7 @@ async function init() {
   applySettings(settings);
   refreshProgramMeta();
   if (!isOnAir) {
-    logInfo("モニターをスキップします (Offline)");
+    logInfo("モニターをスキップします (Off-air)");
     return;
   }
   if (!enabled) {
@@ -171,7 +171,7 @@ function handleStall(now: number) {
   // ここでは単発リロードだけを実行する。
 
   void saveFullscreenStateBeforeReload();
-  logInfo("映像停止を検知、5秒後にリロードします");
+  logInfo(`映像停止を検知、${Math.ceil(COUNTDOWN_MS / 1000)}秒後にリロードします`);
   playReloadSound();
   showCountdown(COUNTDOWN_MS);
   countdownTimer = window.setTimeout(() => {
@@ -398,7 +398,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (wasEnabled !== enabled) {
     if (enabled) {
       if (!isOnAir) {
-        logInfo("モニターをスキップします (Offline)");
+        logInfo("モニターをスキップします (Off-air)");
         return;
       }
       logInfo("拡張が有効化されました");
