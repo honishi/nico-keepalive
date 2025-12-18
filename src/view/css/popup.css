@@ -340,7 +340,11 @@ body {
 }
 
 .log span {
-  color: var(--color-log-ts);
+  color: inherit;
   font-weight: 600;
   margin-right: 6px;
+}
+
+.log span.log-prefix {
+  font-weight: 400;
 }
