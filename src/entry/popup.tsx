@@ -94,8 +94,8 @@ const defaultSettings: Settings = {
 const App: React.FC = () => {
   const [settings, setSettingsState] = useState<Settings>(defaultSettings);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [soundMessage, setSoundMessage] = useState<string>("");
-  const [soundMessageType, setSoundMessageType] = useState<"info" | "error">("info");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [statusMessageType, setStatusMessageType] = useState<"info" | "error">("info");
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
@@ -134,7 +134,7 @@ const App: React.FC = () => {
       setLogs([]);
     } catch (err) {
       console.error("Failed to clear logs", err);
-      showSoundMessage("ログのクリアに失敗しました。", "error");
+      showStatusMessage("ログのクリアに失敗しました。", "error");
     }
   };
 
@@ -148,7 +148,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Failed to save settings", err);
       setSettingsState(previous);
-      showSoundMessage(
+      showStatusMessage(
         "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
         "error",
       );
@@ -164,7 +164,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Failed to save settings", err);
       setSettingsState(previous);
-      showSoundMessage(
+      showStatusMessage(
         "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
         "error",
       );
@@ -181,16 +181,16 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Failed to save settings", err);
       setSettingsState(previous);
-      showSoundMessage(
+      showStatusMessage(
         "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
         "error",
       );
     }
   };
 
-  const showSoundMessage = (message: string, type: "info" | "error" = "info") => {
-    setSoundMessage(message);
-    setSoundMessageType(type);
+  const showStatusMessage = (message: string, type: "info" | "error" = "info") => {
+    setStatusMessage(message);
+    setStatusMessageType(type);
   };
 
   const handleCustomSoundChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
@@ -199,7 +199,7 @@ const App: React.FC = () => {
 
     if (file.size > CUSTOM_SOUND_MAX_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(2);
-      showSoundMessage(`エラー: ファイルサイズ超過 (${sizeMb}MB)`, "error");
+      showStatusMessage(`エラー: ファイルサイズ超過 (${sizeMb}MB)`, "error");
       event.target.value = "";
       return;
     }
@@ -209,7 +209,7 @@ const App: React.FC = () => {
       dataUrl = await readFileAsDataUrl(file);
     } catch (err) {
       console.error("Failed to load custom sound", err);
-      showSoundMessage(
+      showStatusMessage(
         "音声ファイルの読み込みに失敗しました。別の音声ファイルを選択してください。",
         "error",
       );
@@ -225,11 +225,11 @@ const App: React.FC = () => {
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
-      showSoundMessage(`カスタム音を保存しました: ${file.name}`, "info");
+      showStatusMessage(`カスタム音を保存しました: ${file.name}`, "info");
     } catch (err) {
       console.error("Failed to save custom sound", err);
       setSettingsState(previous);
-      showSoundMessage(
+      showStatusMessage(
         "カスタム音の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。別の音声ファイルを選択してください。",
         "error",
       );
@@ -243,11 +243,11 @@ const App: React.FC = () => {
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
-      showSoundMessage("デフォルト音に戻しました", "info");
+      showStatusMessage("デフォルト音に戻しました", "info");
     } catch (err) {
       console.error("Failed to save settings", err);
       setSettingsState(previous);
-      showSoundMessage(
+      showStatusMessage(
         "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
         "error",
       );
@@ -268,7 +268,7 @@ const App: React.FC = () => {
         },
       );
     } catch (err) {
-      showSoundMessage("通知音の再生に失敗しました", "error");
+      showStatusMessage("通知音の再生に失敗しました", "error");
       console.error("Failed to play test sound", err);
     }
   };
@@ -278,7 +278,6 @@ const App: React.FC = () => {
       <section className="section">
         <p className="heading">設定</p>
         <div className="section-body">
-          {soundMessage && <p className={`status-text ${soundMessageType}`}>{soundMessage}</p>}
           <div className="toggle-row">
             <span className="toggle-label">放送停止を検出し自動リロードする</span>
             <Toggle checked={settings.enabled} onChange={handleToggle} />
@@ -364,6 +363,11 @@ const App: React.FC = () => {
           <LogList logs={logs} />
         </div>
       </section>
+      {statusMessage && (
+        <div className="status-footer">
+          <p className={`status-text ${statusMessageType}`}>{statusMessage}</p>
+        </div>
+      )}
     </div>
   );
 };

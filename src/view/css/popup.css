@@ -303,6 +303,10 @@ body {
   margin: 0;
 }
 
+.status-footer {
+  padding: 0 4px 4px;
+}
+
 .status-text.info {
   color: var(--color-info);
 }
