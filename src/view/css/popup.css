@@ -26,6 +26,10 @@
 
   --color-log-fg: #333;
   --color-log-ts: #777;
+  --color-log-debug: #64748b;
+  --color-log-info: var(--color-info);
+  --color-log-warn: #f59e0b;
+  --color-log-error: var(--color-error);
 
   --color-info: #2563eb;
   --color-error: #dc3545;
@@ -57,6 +61,10 @@
 
     --color-log-fg: #e5e7eb;
     --color-log-ts: #94a3b8;
+    --color-log-debug: #94a3b8;
+    --color-log-info: var(--color-info);
+    --color-log-warn: #fbbf24;
+    --color-log-error: var(--color-error);
 
     --color-info: #60a5fa;
     --color-error: #f87171;
@@ -334,9 +342,26 @@ body {
   font-size: 12px;
   line-height: 1.4;
   color: var(--color-log-fg);
-  border-left: 3px solid var(--color-accent);
+  --color-log-accent: var(--color-accent);
+  border-left: 3px solid var(--color-log-accent);
   padding-left: 8px;
   word-break: break-word;
+}
+
+.log.level-debug {
+  --color-log-accent: var(--color-log-debug);
+}
+
+.log.level-info {
+  --color-log-accent: var(--color-log-info);
+}
+
+.log.level-warn {
+  --color-log-accent: var(--color-log-warn);
+}
+
+.log.level-error {
+  --color-log-accent: var(--color-log-error);
 }
 
 .log span {

@@ -69,8 +69,9 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     <div className="logs">
       {ordered.map((log) => {
         const prefix = formatContextProvider(log);
+        const levelClass = `level-${log.level.toLowerCase()}`;
         return (
-          <div key={log.id} className="log">
+          <div key={log.id} className={`log ${levelClass}`}>
             <div className="log-header">
               <span>{formatTs(log.timestamp)}</span>
               {prefix ? <span className="log-prefix">{prefix}</span> : null}
