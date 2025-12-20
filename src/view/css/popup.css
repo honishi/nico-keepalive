@@ -348,6 +348,26 @@ body {
   word-break: break-word;
 }
 
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.log-header > span {
+  flex: 0 0 auto;
+}
+
+.log-header > .log-prefix {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .log.level-debug {
   --color-log-accent: var(--color-log-debug);
 }
