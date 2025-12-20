@@ -316,16 +316,16 @@ const App: React.FC = () => {
 
             <div className="sound-actions">
               <button className="text-button" onClick={handleTestPlay} disabled={disabledSound}>
-                試しに鳴らす
+                テスト再生
               </button>
             </div>
 
             <div className="custom-sound">
               <div className="custom-sound-row">
                 <div>
-                  <p className="custom-sound-label">カスタム音声ファイル (最大1MB)</p>
+                  <p className="custom-sound-label">カスタムファイル (最大1MB)</p>
                   <p className="custom-sound-status">
-                    {settings.customSound?.fileName ?? "未設定（デフォルト音）"}
+                    {settings.customSound?.fileName ?? "未設定（デフォルト）"}
                   </p>
                 </div>
                 <div className="custom-sound-buttons">
