@@ -1,6 +1,6 @@
 {
   "name": "ニコ生キープアライブ",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "manifest_version": 3,
   "description": "ニコニコ生放送の配信停止を検知し、自動リロードします。",
   "icons": {
