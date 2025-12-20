@@ -1,4 +1,4 @@
-export type LogLevel = "INFO" | "WARN" | "ERROR";
+export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
 export type LogEntry = {
   id: string;

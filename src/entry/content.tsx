@@ -1,6 +1,6 @@
 import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
-import { CustomSound, ProgramStateMap, Settings } from "../shared/types";
+import { CustomSound, LogLevel, ProgramStateMap, Settings } from "../shared/types";
 import { getSettings, pushLog, updateProgramStateMap } from "../shared/storage";
 import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 
@@ -130,7 +130,7 @@ function tick() {
 
   // 5) 一定間隔でログを出す（paused/ended 中は除外）
   if (!paused && !ended && tickCount % 20 === 0) {
-    logInfo(`モニターしています...`);
+    logDebug("モニターしています...");
   }
 
   // 6) 一時停止/終了中は「停止」と誤検知しないよう、
@@ -372,7 +372,7 @@ function currentProgramId(): string | undefined {
   return m ? m[1] : undefined;
 }
 
-function log(level: "INFO" | "WARN" | "ERROR", message: string) {
+function log(level: LogLevel, message: string) {
   const context = currentProgramId();
   const contextPart = context ? `[${context}] ` : "";
   const providerPart = providerName ? `[${providerName}] ` : "";
@@ -383,6 +383,7 @@ function log(level: "INFO" | "WARN" | "ERROR", message: string) {
 }
 
 const logInfo = (m: string) => log("INFO", m);
+const logDebug = (m: string) => log("DEBUG", m);
 const logWarn = (m: string) => log("WARN", m);
 
 // Respond to popup toggling enabled flag
