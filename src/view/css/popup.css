@@ -238,6 +238,12 @@ body {
   align-items: flex-end;
 }
 
+.custom-sound-message {
+  align-self: flex-end;
+  margin-top: 4px;
+  text-align: right;
+}
+
 .custom-sound-row {
   display: flex;
   gap: 12px;

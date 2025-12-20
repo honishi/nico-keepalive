@@ -96,6 +96,8 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [statusMessageType, setStatusMessageType] = useState<"info" | "error">("info");
+  const [customSoundMessage, setCustomSoundMessage] = useState<string>("");
+  const [customSoundMessageType, setCustomSoundMessageType] = useState<"info" | "error">("info");
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
@@ -193,13 +195,18 @@ const App: React.FC = () => {
     setStatusMessageType(type);
   };
 
+  const showCustomSoundMessage = (message: string, type: "info" | "error" = "info") => {
+    setCustomSoundMessage(message);
+    setCustomSoundMessageType(type);
+  };
+
   const handleCustomSoundChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (file.size > CUSTOM_SOUND_MAX_BYTES) {
       const sizeMb = (file.size / 1024 / 1024).toFixed(2);
-      showStatusMessage(`エラー: ファイルサイズ超過 (${sizeMb}MB)`, "error");
+      showCustomSoundMessage(`エラー: ファイルサイズ超過 (${sizeMb}MB)`, "error");
       event.target.value = "";
       return;
     }
@@ -209,7 +216,7 @@ const App: React.FC = () => {
       dataUrl = await readFileAsDataUrl(file);
     } catch (err) {
       console.error("Failed to load custom sound", err);
-      showStatusMessage(
+      showCustomSoundMessage(
         "音声ファイルの読み込みに失敗しました。別の音声ファイルを選択してください。",
         "error",
       );
@@ -225,11 +232,11 @@ const App: React.FC = () => {
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
-      showStatusMessage(`カスタム音を保存しました: ${file.name}`, "info");
+      showCustomSoundMessage(`カスタム音を保存しました: ${file.name}`, "info");
     } catch (err) {
       console.error("Failed to save custom sound", err);
       setSettingsState(previous);
-      showStatusMessage(
+      showCustomSoundMessage(
         "カスタム音の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。別の音声ファイルを選択してください。",
         "error",
       );
@@ -243,11 +250,11 @@ const App: React.FC = () => {
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
-      showStatusMessage("デフォルト音に戻しました", "info");
+      showCustomSoundMessage("デフォルト音に戻しました", "info");
     } catch (err) {
       console.error("Failed to save settings", err);
       setSettingsState(previous);
-      showStatusMessage(
+      showCustomSoundMessage(
         "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
         "error",
       );
@@ -347,6 +354,11 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
+              {customSoundMessage && (
+                <p className={`status-text ${customSoundMessageType} custom-sound-message`}>
+                  {customSoundMessage}
+                </p>
+              )}
             </div>
           </div>
         </div>
