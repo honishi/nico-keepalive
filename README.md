@@ -6,13 +6,13 @@ A Chrome extension that keeps Niconico Live (Niconama) streams alive by detectin
 
 ## Features
 
-- Monitors `video.currentTime` every 5 seconds and ignores tiny jitter (±0.01s).
-- Skips detection during a 60s warmup window after the monitor starts.
-- If `currentTime` doesn't change for ~20s, shows a 5s toast countdown and reloads the page.
+- Monitors `video.currentTime` at a fixed interval and ignores tiny jitter.
+- Skips detection during a warmup window after the monitor starts.
+- If `currentTime` doesn't change for a while, shows a short toast countdown and reloads the page.
 - Resets the baseline while paused/ended, and skips monitoring when the program is off-air.
 - Saves fullscreen state before reload and restores it after reload.
-- Plays a notification sound on stall (volume control + custom audio file up to 1MB).
-- Stores logs locally (latest 1,000 entries) and shows them in the popup. Disabled state shows `Zz` badge.
+- Plays a notification sound on stall (volume control + custom audio file).
+- Stores recent logs locally and shows them in the popup. Disabled state shows `Zz` badge.
 
 ## Installation
 
