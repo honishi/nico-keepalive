@@ -11,26 +11,36 @@
 
 ## 機能概要（content）
 - `video.currentTime` を 5 秒間隔で監視し、約 20 秒間変化しない場合を停止扱い（微小揺れはノイズとして無視）。
+- 監視開始から 60 秒はウォームアップとして判定をスキップ（再生開始直後の誤検知を抑止）。
 - 停止判定後は 5 秒カウントダウン（トースト表示）し、`window.location.reload()` を実行。
 - `paused` / `ended` 時は監視基準をリセットしてスキップ（再開直後の誤検知を防ぐ）。
 - 番組メタ（放送者名 / ON_AIR）を `#embedded-data` の `data-props` から取得し、Offline の場合は監視しない。
-- 番組 ID（`lv...` / `ch...`）と放送者名を付けてログ保存・通知（Web Notification。サイト側の通知許可に依存し、初回のみ許可をリクエスト）。
+- 放送停止検出時に通知音を再生（デフォルト音 / カスタム音・音量を設定可能）。
+- 番組 ID（`lv...` / `ch...`）と放送者名を付けてログ保存（レベル付き）。
+- リロード前にフルスクリーン状態を保存し、リロード後に復元を試みる（最大 5 回リトライ）。
 
 ## リロード挙動
 - 停止検知中は二重にカウントダウンしない（カウントダウン中の再トリガーを抑止）。
 - リロード回数上限・間隔制御・クールダウン等のレート制限は現状未実装。
+- フルスクリーン復元用の状態は 24 時間で破棄される。
 
 ## ログ / 設定
 - 保存先: `chrome.storage.local`
-- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）
+- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）、`programStateMap`（フルスクリーン復元用）
+- `customSound` は `dataUrl` 保存（最大 1MB、ファイル名も保持）
 - popup で設定変更・表示・クリア可能（無効化時はバッジに `Zz` を表示）
 
 ## テスト / ビルド
-- テスト: `npm test -- --runInBand`（Jest）。`test/reload-policy.test.ts` あり。
-- ビルド: 開発 `npm run build-dev-once`、本番 `npm run build-prod`。出力先 `dist`。
+- テスト: `npm test`（Jest）。`test/program-meta.test.ts` あり。
+- ビルド: 開発 `npm run build-dev`（watch）、`npm run build-dev-once`、本番 `npm run build-prod`。出力先 `dist`。
 
 ## 重要ファイル
 - `src/entry/content.tsx`, `src/entry/popup.tsx`, `src/shared/*`, `public/manifest.json`
+
+## 開発用ショートカット（__DEV__ のみ）
+- `Ctrl+T` トースト表示のテスト
+- `Ctrl+D` フルスクリーン状態のログ出力 / `Ctrl+F` フルスクリーン切替
+- `Ctrl+R` 停止検知のシミュレート（入力中は無効）
 
 ## コミット運用
 - commit は指示があるまで勝手にしないこと。
