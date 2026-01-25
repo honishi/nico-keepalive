@@ -1,7 +1,12 @@
 import { playNotificationSound } from "../shared/sound";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, LogLevel, ProgramStateMap, Settings } from "../shared/types";
-import { getSettings, pushLog, updateProgramStateMap } from "../shared/storage";
+import {
+  getSettings,
+  incrementReloadCount,
+  pushLog,
+  updateProgramStateMap,
+} from "../shared/storage";
 import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 
 declare const __DEV__: boolean;
@@ -175,8 +180,15 @@ function handleStall(now: number) {
   playReloadSound();
   showCountdown(COUNTDOWN_MS);
   countdownTimer = window.setTimeout(() => {
-    logInfo("リロードを実行します");
-    window.location.reload();
+    void (async () => {
+      logInfo("リロードを実行します");
+      try {
+        await incrementReloadCount();
+      } catch (err) {
+        logWarn(`自動リロード回数の更新に失敗しました: ${String(err)}`);
+      }
+      window.location.reload();
+    })();
   }, COUNTDOWN_MS);
 
   // リロード実行までの間に再検知しないよう、進行基準を現在時刻でリセット

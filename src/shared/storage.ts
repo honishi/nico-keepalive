@@ -1,4 +1,4 @@
-import { LOG_MAX, LogEntry, ProgramStateMap, Settings, STORAGE_KEYS } from "./types";
+import { LOG_MAX, LogEntry, ProgramStateMap, ReloadStats, Settings, STORAGE_KEYS } from "./types";
 
 const defaultSettings: Settings = {
   enabled: true,
@@ -12,6 +12,8 @@ const safeStorage: chrome.storage.StorageArea | null =
 
 const LOG_LOCK_NAME = "nico-keepalive:logs";
 const PROGRAM_STATE_LOCK_NAME = "nico-keepalive:program-state";
+const RELOAD_COUNT_LOCK_NAME = "nico-keepalive:reload-count";
+const DEFAULT_RELOAD_STATS: ReloadStats = { count: 0 };
 
 async function withStorageLock<T>(name: string, fn: () => Promise<T>): Promise<T> {
   const locks =
@@ -109,6 +111,83 @@ export async function clearLogs(): Promise<void> {
         return;
       }
       resolve();
+    });
+  });
+}
+
+function normalizeReloadStats(value: unknown): ReloadStats {
+  if (value && typeof value === "object") {
+    const record = value as { count?: unknown; lastReloadAt?: unknown };
+    const count =
+      typeof record.count === "number" && Number.isFinite(record.count)
+        ? record.count
+        : DEFAULT_RELOAD_STATS.count;
+    const lastReloadAt =
+      typeof record.lastReloadAt === "number" && Number.isFinite(record.lastReloadAt)
+        ? record.lastReloadAt
+        : undefined;
+    return {
+      count,
+      ...(lastReloadAt !== undefined ? { lastReloadAt } : {}),
+    };
+  }
+  return DEFAULT_RELOAD_STATS;
+}
+
+export async function getReloadStats(): Promise<ReloadStats> {
+  if (!safeStorage) return DEFAULT_RELOAD_STATS;
+  return new Promise((resolve) => {
+    safeStorage.get(STORAGE_KEYS.reloadCount, (items) => {
+      const err = chrome.runtime.lastError;
+      if (err) {
+        console.warn("[nico-keepalive/storage] Failed to get reload count", err);
+        resolve(DEFAULT_RELOAD_STATS);
+        return;
+      }
+      resolve(normalizeReloadStats(items[STORAGE_KEYS.reloadCount]));
+    });
+  });
+}
+
+export async function getReloadCount(): Promise<number> {
+  const stats = await getReloadStats();
+  return stats.count;
+}
+
+export async function incrementReloadCount(): Promise<number> {
+  if (!safeStorage) return 0;
+  return withStorageLock(RELOAD_COUNT_LOCK_NAME, async () => {
+    const current = await getReloadStats();
+    const now = Date.now();
+    const nextStats: ReloadStats = {
+      count: current.count + 1,
+      lastReloadAt: now,
+    };
+    await new Promise<void>((resolve) => {
+      safeStorage.set({ [STORAGE_KEYS.reloadCount]: nextStats }, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          console.warn("[nico-keepalive/storage] Failed to save reload count", err);
+        }
+        resolve();
+      });
+    });
+    return nextStats.count;
+  });
+}
+
+export async function clearReloadCount(): Promise<void> {
+  if (!safeStorage) return;
+  return withStorageLock(RELOAD_COUNT_LOCK_NAME, () => {
+    return new Promise((resolve, reject) => {
+      safeStorage.set({ [STORAGE_KEYS.reloadCount]: DEFAULT_RELOAD_STATS }, () => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          reject(new Error(err.message));
+          return;
+        }
+        resolve();
+      });
     });
   });
 }
