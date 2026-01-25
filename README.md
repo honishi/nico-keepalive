@@ -13,6 +13,7 @@ A Chrome extension that keeps Niconico Live (Niconama) streams alive by detectin
 - Saves fullscreen state before reload and restores it after reload.
 - Plays a notification sound on stall (volume control + custom audio file).
 - Stores recent logs locally and shows them in the popup. Disabled state shows `Zz` badge.
+- Shows auto-reload count in the popup status section.
 
 ## Installation
 
