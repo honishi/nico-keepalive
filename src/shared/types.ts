@@ -14,6 +14,11 @@ export type CustomSound = {
   dataUrl: string; // Base64 data URL
 };
 
+export type ReloadStats = {
+  count: number;
+  lastReloadAt?: number;
+};
+
 export type ProgramState = {
   fullscreen?: boolean;
   updatedAt?: number;
@@ -34,6 +39,7 @@ export const STORAGE_KEYS = {
   settings: "settings",
   logs: "logs",
   programStateMap: "programStateMap",
+  reloadCount: "reloadCount",
 } as const;
 
 export const LOG_MAX = 1_000;

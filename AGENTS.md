@@ -13,6 +13,7 @@
 - `video.currentTime` を 5 秒間隔で監視し、約 20 秒間変化しない場合を停止扱い（微小揺れはノイズとして無視）。
 - 監視開始から 60 秒はウォームアップとして判定をスキップ（再生開始直後の誤検知を抑止）。
 - 停止判定後は 5 秒カウントダウン（トースト表示）し、`window.location.reload()` を実行。
+- 自動リロード回数を記録して popup の「動作状況」に表示。
 - `paused` / `ended` 時は監視基準をリセットしてスキップ（再開直後の誤検知を防ぐ）。
 - 番組メタ（放送者名 / ON_AIR）を `#embedded-data` の `data-props` から取得し、Offline の場合は監視しない。
 - 放送停止検出時に通知音を再生（デフォルト音 / カスタム音・音量を設定可能）。
@@ -26,9 +27,9 @@
 
 ## ログ / 設定
 - 保存先: `chrome.storage.local`
-- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）、`programStateMap`（フルスクリーン復元用）
+- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）、`programStateMap`（フルスクリーン復元用）、`reloadCount`（`{ count, lastReloadAt? }`）
 - `customSound` は `dataUrl` 保存（最大 1MB、ファイル名も保持）
-- popup で設定変更・表示・クリア可能（無効化時はバッジに `Zz` を表示）
+- popup で設定変更・表示・クリア可能（無効化時はバッジに `Zz` を表示）。動作状況のクリアで自動リロード回数をリセット。
 
 ## テスト / ビルド
 - テスト: `npm test`（Jest）。`test/program-meta.test.ts` あり。

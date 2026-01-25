@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { clearLogs, getLogs, getSettings, setSettings } from "../shared/storage";
+import {
+  clearLogs,
+  clearReloadCount,
+  getLogs,
+  getReloadCount,
+  getSettings,
+  setSettings,
+} from "../shared/storage";
 import {
   CUSTOM_SOUND_MAX_BYTES,
   SOUND_VOLUME_MAX,
@@ -94,6 +101,7 @@ const defaultSettings: Settings = {
 const App: React.FC = () => {
   const [settings, setSettingsState] = useState<Settings>(defaultSettings);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [reloadCount, setReloadCount] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [statusMessageType, setStatusMessageType] = useState<"info" | "error">("info");
   const [customSoundMessage, setCustomSoundMessage] = useState<string>("");
@@ -109,15 +117,28 @@ const App: React.FC = () => {
       await updateBadge(merged.enabled);
     });
     getLogs().then(setLogs);
+    getReloadCount().then(setReloadCount);
 
     const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
       changes,
       area,
     ) => {
-      if (area !== "local" || !changes.logs) return;
-      const next = changes.logs.newValue as LogEntry[] | undefined;
-      if (Array.isArray(next)) {
-        setLogs(next);
+      if (area !== "local") return;
+      if (changes.logs) {
+        const next = changes.logs.newValue as LogEntry[] | undefined;
+        if (Array.isArray(next)) {
+          setLogs(next);
+        }
+      }
+      if (changes.reloadCount) {
+        const next = changes.reloadCount.newValue as { count?: unknown } | undefined;
+        if (next && typeof next === "object") {
+          const count =
+            typeof next.count === "number" && Number.isFinite(next.count) ? next.count : 0;
+          setReloadCount(count);
+        } else {
+          setReloadCount(0);
+        }
       }
     };
     if (chrome?.storage?.onChanged) {
@@ -137,6 +158,16 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Failed to clear logs", err);
       showStatusMessage("ログのクリアに失敗しました。", "error");
+    }
+  };
+
+  const handleClearStatus = async () => {
+    try {
+      await clearReloadCount();
+      setReloadCount(0);
+    } catch (err) {
+      console.error("Failed to clear reload count", err);
+      showStatusMessage("動作状況のクリアに失敗しました。", "error");
     }
   };
 
@@ -366,7 +397,22 @@ const App: React.FC = () => {
 
       <section className="section">
         <div className="heading-row">
-          <p className="heading">動作ログ（最新{LOG_MAX.toLocaleString()}件）</p>
+          <p className="heading">動作状況</p>
+          <button className="text-button" onClick={handleClearStatus}>
+            クリア
+          </button>
+        </div>
+        <div className="section-body stats-body">
+          <div className="stats-row">
+            <span className="stats-label">自動リロード回数</span>
+            <span className="stats-value">{reloadCount.toLocaleString()}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="heading-row">
+          <p className="heading">動作ログ</p>
           <button className="text-button" onClick={handleClearLogs}>
             クリア
           </button>

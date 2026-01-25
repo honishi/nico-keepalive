@@ -321,6 +321,28 @@ body {
   color: var(--color-error);
 }
 
+/* 統計 */
+.stats-body {
+  margin-top: 8px;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.stats-label {
+  color: var(--color-fg-muted);
+}
+
+.stats-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 動作ログ */
 .heading-row {
   display: flex;
