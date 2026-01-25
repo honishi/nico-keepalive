@@ -335,7 +335,7 @@ body {
 }
 
 .stats-label {
-  color: var(--color-fg-muted);
+  color: var(--color-fg);
 }
 
 .stats-value {
