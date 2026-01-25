@@ -412,7 +412,7 @@ const App: React.FC = () => {
 
       <section className="section">
         <div className="heading-row">
-          <p className="heading">動作ログ（最新{LOG_MAX.toLocaleString()}件）</p>
+          <p className="heading">動作ログ</p>
           <button className="text-button" onClick={handleClearLogs}>
             クリア
           </button>
