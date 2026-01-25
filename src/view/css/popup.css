@@ -322,6 +322,10 @@ body {
 }
 
 /* 統計 */
+.stats-body {
+  margin-top: 8px;
+}
+
 .stats-row {
   display: flex;
   align-items: center;
