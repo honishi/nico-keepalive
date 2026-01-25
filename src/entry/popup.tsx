@@ -404,7 +404,7 @@ const App: React.FC = () => {
         </div>
         <div className="section-body stats-body">
           <div className="stats-row">
-            <span className="stats-label">自動リロード回数</span>
+            <span className="stats-label">自動リロード発動回数</span>
             <span className="stats-value">{reloadCount.toLocaleString()}</span>
           </div>
         </div>
