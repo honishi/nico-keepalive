@@ -161,13 +161,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleClearReloadCount = async () => {
+  const handleClearStatus = async () => {
     try {
       await clearReloadCount();
       setReloadCount(0);
     } catch (err) {
       console.error("Failed to clear reload count", err);
-      showStatusMessage("統計のクリアに失敗しました。", "error");
+      showStatusMessage("動作状況のクリアに失敗しました。", "error");
     }
   };
 
@@ -397,8 +397,8 @@ const App: React.FC = () => {
 
       <section className="section">
         <div className="heading-row">
-          <p className="heading">統計</p>
-          <button className="text-button" onClick={handleClearReloadCount}>
+          <p className="heading">動作状況</p>
+          <button className="text-button" onClick={handleClearStatus}>
             クリア
           </button>
         </div>
