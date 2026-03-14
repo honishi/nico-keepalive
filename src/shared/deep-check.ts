@@ -1,7 +1,7 @@
 export const DEEP_CHECK_FRAME_WIDTH = 32;
 export const DEEP_CHECK_FRAME_HEIGHT = 18;
 export const DEEP_CHECK_FRAME_DIFF_THRESHOLD = 6;
-export const DEEP_CHECK_AUDIO_SILENCE_RMS_THRESHOLD = 3;
+export const DEEP_CHECK_AUDIO_SILENCE_RMS_THRESHOLD = 0.01;
 
 export type DeepCheckState = {
   initialized: boolean;

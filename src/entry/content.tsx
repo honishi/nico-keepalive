@@ -573,6 +573,7 @@ function ensureDeepCheckDebugPanel(): {
 
   const canvases = document.createElement("div");
   canvases.style.display = "flex";
+  canvases.style.alignItems = "center";
   canvases.style.gap = "8px";
   canvases.style.marginBottom = "8px";
 
@@ -585,6 +586,12 @@ function ensureDeepCheckDebugPanel(): {
   previousCanvas.style.background = "#111";
   previousCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
 
+  const arrow = document.createElement("div");
+  arrow.textContent = "➔";
+  arrow.style.color = "rgba(255,255,255,0.7)";
+  arrow.style.fontSize = "16px";
+  arrow.style.lineHeight = "1";
+
   const currentCanvas = document.createElement("canvas");
   currentCanvas.dataset.role = "current";
   currentCanvas.width = DEEP_CHECK_FRAME_WIDTH;
@@ -595,6 +602,7 @@ function ensureDeepCheckDebugPanel(): {
   currentCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
 
   canvases.appendChild(previousCanvas);
+  canvases.appendChild(arrow);
   canvases.appendChild(currentCanvas);
 
   const stats = document.createElement("pre");
