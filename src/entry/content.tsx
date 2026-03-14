@@ -28,7 +28,7 @@ const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
 const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
-const DEEP_CHECK_DEBUG_PANEL_ID = "nico-keepalive-deep-check-debug";
+const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
 const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
@@ -71,6 +71,15 @@ type DeepCheckSample = {
   audioRms?: number;
   previousFrame?: Uint8ClampedArray | null;
   nextFrame?: Uint8ClampedArray | null;
+};
+
+type DeepCheckEvaluation = {
+  stalled: boolean;
+  visual: Pick<
+    DeepCheckSample,
+    "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
+  >;
+  audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">;
 };
 
 type NormalCheckDebugSnapshot = {
@@ -144,7 +153,7 @@ function applySettings(settings: Settings) {
   if (wasDeepCheckEnabled && !deepCheckModeEnabled) {
     cleanupDeepCheckResources();
     resetDeepCheckMonitoringState();
-    hideDeepCheckDebugPanel();
+    hideMonitorDebugOverlay();
     return;
   }
 
@@ -154,7 +163,7 @@ function applySettings(settings: Settings) {
   }
 
   if (!deepCheckOverlayEnabled) {
-    hideDeepCheckDebugPanel();
+    hideMonitorDebugOverlay();
   }
 }
 
@@ -174,7 +183,7 @@ function stopMonitor() {
   }
   cleanupDeepCheckResources();
   resetDeepCheckMonitoringState();
-  hideDeepCheckDebugPanel();
+  hideMonitorDebugOverlay();
   clearCountdown();
   hideToast();
   logInfo("モニターを停止しました");
@@ -226,13 +235,18 @@ function tick() {
     const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
 
     if (deepCheckModeEnabled) {
-      evaluateDeepCheck(video, nowMs, {
+      const deepCheck = evaluateDeepCheck(video, nowMs, {
+        inWarmup: true,
+        warmupRemainingMs: remainingMs,
+      });
+      updateMonitorDebugOverlay(video, nowMs, {
         inWarmup: true,
         warmupRemainingMs: remainingMs,
         normalCheck,
+        deepCheck,
       });
     } else {
-      updateDeepCheckDebugSectionVisibility();
+      updateMonitorDebugOverlayVisibility();
     }
 
     // eslint-disable-next-line no-console
@@ -298,14 +312,17 @@ function tick() {
   }
 
   // 9) 追加判定: deep check mode が有効なときだけ、映像変化なし + 無音を確認する
-  if (
-    deepCheckModeEnabled &&
-    debugDeepCheckEnabled &&
-    evaluateDeepCheck(video, nowMs, { normalCheck })
-  ) {
+  const deepCheck =
+    deepCheckModeEnabled && debugDeepCheckEnabled ? evaluateDeepCheck(video, nowMs) : null;
+
+  if (deepCheck?.stalled) {
     handleStall(nowMs, "deepCheck");
   } else {
-    updateDeepCheckDebugSectionVisibility();
+    updateMonitorDebugOverlayVisibility();
+  }
+
+  if (deepCheckModeEnabled && debugDeepCheckEnabled) {
+    updateMonitorDebugOverlay(video, nowMs, { normalCheck, deepCheck });
   }
 }
 
@@ -370,7 +387,7 @@ function handleStall(now: number, reason: "currentTime" | "deepCheck") {
 function resetDeepCheckMonitoringState() {
   deepCheckState = createDeepCheckState();
   deepCheckLastFrame = null;
-  hideDeepCheckDebugPanel();
+  hideMonitorDebugOverlay();
 }
 
 function resetDeepCheckModeAvailability() {
@@ -569,18 +586,17 @@ function evaluateDeepCheck(
   options?: {
     inWarmup?: boolean;
     warmupRemainingMs?: number;
-    normalCheck?: NormalCheckDebugSnapshot;
   },
-): boolean {
+): DeepCheckEvaluation | null {
   if (!deepCheckModeEnabled || !deepCheckAvailable) {
-    return false;
+    return null;
   }
 
   const visual = sampleDeepCheckFrame(video);
   const audio = sampleDeepCheckAudio(video);
 
   if (!deepCheckAvailable) {
-    return false;
+    return null;
   }
 
   const result = reduceDeepCheckState(
@@ -600,8 +616,11 @@ function evaluateDeepCheck(
 
   deepCheckState = result.state;
   logDeepCheckMetrics(video, visual, audio, result.stalled, nowMs);
-  updateDeepCheckDebugPanel(video, visual, audio, result.stalled, nowMs, options);
-  return options?.inWarmup === true ? false : result.stalled;
+  return {
+    visual,
+    audio,
+    stalled: options?.inWarmup === true ? false : result.stalled,
+  };
 }
 
 function logDeepCheckMetrics(
@@ -642,20 +661,20 @@ function logDeepCheckMetrics(
   console.log(`[nico-keepalive/content] ${contextPart}${providerPart}${message}`);
 }
 
-function hideDeepCheckDebugPanel() {
-  const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
+function hideMonitorDebugOverlay() {
+  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
   }
 }
 
-function updateDeepCheckDebugSectionVisibility() {
+function updateMonitorDebugOverlayVisibility() {
   if (!deepCheckModeEnabled || !debugDeepCheckEnabled || !deepCheckOverlayEnabled || !enabled) {
-    hideDeepCheckDebugPanel();
+    hideMonitorDebugOverlay();
   }
 }
 
-function ensureDeepCheckDebugPanel(): {
+function ensureMonitorDebugOverlay(): {
   root: HTMLDivElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
@@ -663,7 +682,7 @@ function ensureDeepCheckDebugPanel(): {
 } | null {
   if (!deepCheckOverlayEnabled) return null;
 
-  const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
+  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
     const previousCanvas = existing.querySelector(
       "[data-role='previous']",
@@ -678,7 +697,7 @@ function ensureDeepCheckDebugPanel(): {
   }
 
   const root = document.createElement("div");
-  root.id = DEEP_CHECK_DEBUG_PANEL_ID;
+  root.id = MONITOR_DEBUG_PANEL_ID;
   root.style.position = "fixed";
   root.style.right = "16px";
   root.style.top = "16px";
@@ -694,7 +713,7 @@ function ensureDeepCheckDebugPanel(): {
   root.style.maxWidth = "360px";
 
   const title = document.createElement("div");
-  title.textContent = "deep check debug";
+  title.textContent = "monitor debug";
   title.style.marginBottom = "8px";
   title.style.fontWeight = "700";
 
@@ -770,26 +789,27 @@ function drawFrameThumbnail(
   context.putImageData(imageData, 0, 0);
 }
 
-function updateDeepCheckDebugPanel(
+function updateMonitorDebugOverlay(
   video: HTMLVideoElement,
-  visual: Pick<
-    DeepCheckSample,
-    "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
-  >,
-  audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">,
-  stalled: boolean,
   nowMs: number,
   options?: {
     inWarmup?: boolean;
     warmupRemainingMs?: number;
     normalCheck?: NormalCheckDebugSnapshot;
+    deepCheck?: DeepCheckEvaluation | null;
   },
 ) {
-  const panel = ensureDeepCheckDebugPanel();
+  const panel = ensureMonitorDebugOverlay();
   if (!panel) return;
 
-  drawFrameThumbnail(panel.previousCanvas, visual.previousFrame);
-  drawFrameThumbnail(panel.currentCanvas, visual.nextFrame);
+  const deepCheck = options?.deepCheck;
+  if (!deepCheck) {
+    hideMonitorDebugOverlay();
+    return;
+  }
+
+  drawFrameThumbnail(panel.previousCanvas, deepCheck.visual.previousFrame);
+  drawFrameThumbnail(panel.currentCanvas, deepCheck.visual.nextFrame);
 
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
@@ -808,11 +828,13 @@ function updateDeepCheckDebugPanel(
     "",
     "deep check",
     `frameDiff=${
-      typeof visual.frameAverageDiff === "number" ? visual.frameAverageDiff.toFixed(2) : "n/a"
-    } changed=${visual.frameChanged} eligible=${visual.visualEligible}`,
-    `audioRms=${typeof audio.audioRms === "number" ? audio.audioRms.toFixed(2) : "n/a"} silent=${
-      audio.audioSilent
-    } eligible=${audio.audioEligible}`,
+      typeof deepCheck.visual.frameAverageDiff === "number"
+        ? deepCheck.visual.frameAverageDiff.toFixed(2)
+        : "n/a"
+    } changed=${deepCheck.visual.frameChanged} eligible=${deepCheck.visual.visualEligible}`,
+    `audioRms=${
+      typeof deepCheck.audio.audioRms === "number" ? deepCheck.audio.audioRms.toFixed(2) : "n/a"
+    } silent=${deepCheck.audio.audioSilent} eligible=${deepCheck.audio.audioEligible}`,
     `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec} thresholdSec=${Math.round(
       deepCheckThresholdMs / 1000,
     )}`,
@@ -821,7 +843,7 @@ function updateDeepCheckDebugPanel(
         ? Math.ceil(options.warmupRemainingMs / 1000)
         : 0
     }`,
-    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${stalled}`,
+    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${deepCheck.stalled}`,
   ].join("\n");
 }
 
