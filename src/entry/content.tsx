@@ -56,7 +56,8 @@ let deepCheckLastFrame: Uint8ClampedArray | null = null;
 let deepCheckAudioContext: AudioContext | null = null;
 let deepCheckAnalyser: AnalyserNode | null = null;
 let deepCheckAudioData: Uint8Array | null = null;
-let deepCheckAudioSource: MediaElementAudioSourceNode | null = null;
+let deepCheckAudioSource: MediaStreamAudioSourceNode | null = null;
+let deepCheckAudioStream: MediaStream | null = null;
 let deepCheckSourceVideo: HTMLVideoElement | null = null;
 let deepCheckAvailable = true;
 let deepCheckFallbackLogged = false;
@@ -76,6 +77,11 @@ type AudioContextWithWebkit = Window &
   typeof globalThis & {
     webkitAudioContext?: typeof AudioContext;
   };
+
+type HTMLVideoElementWithCapture = HTMLVideoElement & {
+  captureStream?: () => MediaStream;
+  mozCaptureStream?: () => MediaStream;
+};
 
 async function init() {
   await restoreFullscreenAfterReload();
@@ -306,9 +312,18 @@ function cleanupDeepCheckResources() {
   deepCheckCanvasContext = null;
   deepCheckLastFrame = null;
   deepCheckAudioData = null;
-  deepCheckAudioSource = null;
   deepCheckSourceVideo = null;
-  deepCheckAnalyser = null;
+  deepCheckAudioStream = null;
+
+  if (deepCheckAudioSource) {
+    deepCheckAudioSource.disconnect();
+    deepCheckAudioSource = null;
+  }
+
+  if (deepCheckAnalyser) {
+    deepCheckAnalyser.disconnect();
+    deepCheckAnalyser = null;
+  }
 
   if (deepCheckAudioContext) {
     void deepCheckAudioContext.close().catch(() => undefined);
@@ -363,20 +378,35 @@ function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
 
   const AudioContextCtor =
     window.AudioContext ?? (window as AudioContextWithWebkit).webkitAudioContext;
+  const videoWithCapture = video as HTMLVideoElementWithCapture;
+  const captureStream =
+    videoWithCapture.captureStream?.bind(videoWithCapture) ??
+    videoWithCapture.mozCaptureStream?.bind(videoWithCapture);
 
   if (!AudioContextCtor) {
     disableDeepCheck("AudioContext を利用できませんでした");
     return false;
   }
 
+  if (!captureStream) {
+    disableDeepCheck("captureStream を利用できませんでした");
+    return false;
+  }
+
   try {
+    deepCheckAudioStream = captureStream();
+    const hasAudioTrack = deepCheckAudioStream.getAudioTracks().length > 0;
+    if (!hasAudioTrack) {
+      disableDeepCheck("音声トラックを取得できませんでした");
+      return false;
+    }
+
     deepCheckAudioContext = new AudioContextCtor();
     deepCheckAnalyser = deepCheckAudioContext.createAnalyser();
     deepCheckAnalyser.fftSize = 2048;
     deepCheckAudioData = new Uint8Array(new ArrayBuffer(deepCheckAnalyser.fftSize));
-    deepCheckAudioSource = deepCheckAudioContext.createMediaElementSource(video);
+    deepCheckAudioSource = deepCheckAudioContext.createMediaStreamSource(deepCheckAudioStream);
     deepCheckAudioSource.connect(deepCheckAnalyser);
-    deepCheckAnalyser.connect(deepCheckAudioContext.destination);
     deepCheckSourceVideo = video;
     return true;
   } catch (err) {
