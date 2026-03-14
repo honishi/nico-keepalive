@@ -16,7 +16,12 @@ import {
   playNotificationSound,
   clampVolume,
 } from "../shared/sound";
-import { DEFAULT_SETTINGS } from "../shared/settings";
+import {
+  clampDeepCheckThresholdSec,
+  DEFAULT_SETTINGS,
+  DEEP_CHECK_THRESHOLD_MAX_SEC,
+  DEEP_CHECK_THRESHOLD_MIN_SEC,
+} from "../shared/settings";
 import { LOG_MAX, LogEntry, Settings } from "../shared/types";
 
 declare const __DEV__: boolean;
@@ -93,6 +98,14 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
     </div>
   );
 };
+
+function formatDurationLabel(seconds: number): string {
+  if (seconds < 60) return `${seconds}秒`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (remainingSeconds === 0) return `${minutes}分`;
+  return `${minutes}分${remainingSeconds}秒`;
+}
 
 const App: React.FC = () => {
   const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
@@ -218,6 +231,23 @@ const App: React.FC = () => {
   const handleDeepCheckOverlayToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, deepCheckOverlayEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDeepCheckThresholdChange = async (value: number) => {
+    const previous = settings;
+    const nextThresholdSec = clampDeepCheckThresholdSec(value);
+    const nextSettings = { ...settings, deepCheckThresholdSec: nextThresholdSec };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -487,6 +517,31 @@ const App: React.FC = () => {
                 onChange={handleDeepCheckModeToggle}
                 disabled={disabledAll}
               />
+            </div>
+
+            <div className="slider-block">
+              <div className="slider-header">
+                <span className="slider-label">高度な停止チェックの判定時間</span>
+                <span className="slider-value">
+                  {formatDurationLabel(
+                    settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC,
+                  )}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={DEEP_CHECK_THRESHOLD_MIN_SEC}
+                max={DEEP_CHECK_THRESHOLD_MAX_SEC}
+                step={10}
+                value={settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC}
+                onChange={(e) => handleDeepCheckThresholdChange(Number(e.target.value))}
+                disabled={disabledAll}
+              />
+              <div className="slider-scale">
+                <span>20秒</span>
+                <span>2分</span>
+                <span>5分</span>
+              </div>
             </div>
 
             <div className="toggle-row">

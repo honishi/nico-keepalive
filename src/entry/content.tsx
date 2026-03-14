@@ -33,6 +33,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let deepCheckModeEnabled = false;
+let deepCheckThresholdMs = 2 * 60 * 1000;
 let deepCheckOverlayEnabled = false;
 let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
@@ -111,6 +112,7 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
+  deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 120) * 1000;
   deepCheckOverlayEnabled = normalized.deepCheckOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
@@ -476,7 +478,7 @@ function evaluateDeepCheck(video: HTMLVideoElement, nowMs: number): boolean {
       audioEligible: audio.audioEligible,
       audioSilent: audio.audioSilent,
     },
-    NO_TIME_CHANGE_THRESHOLD_MS,
+    deepCheckThresholdMs,
   );
 
   deepCheckState = result.state;
@@ -512,6 +514,7 @@ function logDeepCheckMetrics(
       `audioSilent=${audio.audioSilent}`,
       `audioEligible=${audio.audioEligible}`,
       `audioIdleSec=${audioIdleSec}`,
+      `thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
       `muted=${video.muted}`,
       `volume=${video.volume.toFixed(2)}`,
       `stalled=${stalled}`,
@@ -672,7 +675,9 @@ function updateDeepCheckDebugPanel(
     `audioRms=${typeof audio.audioRms === "number" ? audio.audioRms.toFixed(2) : "n/a"} silent=${
       audio.audioSilent
     } eligible=${audio.audioEligible}`,
-    `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec}`,
+    `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec} thresholdSec=${Math.round(
+      deepCheckThresholdMs / 1000,
+    )}`,
     `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${stalled}`,
   ].join("\n");
 }
@@ -688,6 +693,7 @@ function getCurrentSettings(): Settings {
   return {
     enabled,
     deepCheckModeEnabled,
+    deepCheckThresholdSec: Math.round(deepCheckThresholdMs / 1000),
     deepCheckOverlayEnabled,
     debugWarmupEnabled,
     debugCurrentTimeCheckEnabled,
