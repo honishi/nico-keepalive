@@ -73,6 +73,20 @@ type DeepCheckSample = {
   nextFrame?: Uint8ClampedArray | null;
 };
 
+type NormalCheckDebugSnapshot = {
+  currentTimeSec: number;
+  lastObservedCurrentTimeSec: number;
+  deltaSec: number;
+  timeMoved: boolean;
+  idleSec: number;
+  thresholdSec: number;
+  epsilonSec: number;
+  enabled: boolean;
+  stalled: boolean;
+  paused: boolean;
+  ended: boolean;
+};
+
 type AudioContextWithWebkit = Window &
   typeof globalThis & {
     webkitAudioContext?: typeof AudioContext;
@@ -184,6 +198,8 @@ function tick() {
   const currentTimeSec = video.currentTime;
   const paused = video.paused;
   const ended = video.ended;
+  const previousObservedCurrentTimeSec = lastObservedCurrentTimeSec;
+  const previousTimeChangeAtMs = lastTimeChangeAtMs;
 
   // 3) tick カウンタを単調増加させる（ログ出力の間引き判定にも使う）
   tickCount += 1;
@@ -193,13 +209,28 @@ function tick() {
     firstTickAtMs = nowMs;
   }
   if (debugWarmupEnabled && nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
+    const normalCheck = createNormalCheckDebugSnapshot({
+      currentTimeSec,
+      lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
+      nowMs,
+      lastTimeChangeAtMs: previousTimeChangeAtMs,
+      enabled: debugCurrentTimeCheckEnabled,
+      paused,
+      ended,
+      stalled: false,
+    });
+
     // スキップ期間中も基準は更新しておく（スキップ明けに誤検知しないため）
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
     const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
 
     if (deepCheckModeEnabled) {
-      evaluateDeepCheck(video, nowMs, { inWarmup: true, warmupRemainingMs: remainingMs });
+      evaluateDeepCheck(video, nowMs, {
+        inWarmup: true,
+        warmupRemainingMs: remainingMs,
+        normalCheck,
+      });
     } else {
       updateDeepCheckDebugSectionVisibility();
     }
@@ -251,17 +282,58 @@ function tick() {
     debugCurrentTimeCheckEnabled &&
     !hasTimeMoved &&
     nowMs - lastTimeChangeAtMs >= NO_TIME_CHANGE_THRESHOLD_MS;
+  const normalCheck = createNormalCheckDebugSnapshot({
+    currentTimeSec,
+    lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
+    nowMs,
+    lastTimeChangeAtMs: hasTimeMoved ? nowMs : previousTimeChangeAtMs,
+    enabled: debugCurrentTimeCheckEnabled,
+    paused,
+    ended,
+    stalled: isCurrentTimeStalled,
+  });
   if (isCurrentTimeStalled) {
     handleStall(nowMs, "currentTime");
     return;
   }
 
   // 9) 追加判定: deep check mode が有効なときだけ、映像変化なし + 無音を確認する
-  if (deepCheckModeEnabled && debugDeepCheckEnabled && evaluateDeepCheck(video, nowMs)) {
+  if (
+    deepCheckModeEnabled &&
+    debugDeepCheckEnabled &&
+    evaluateDeepCheck(video, nowMs, { normalCheck })
+  ) {
     handleStall(nowMs, "deepCheck");
   } else {
     updateDeepCheckDebugSectionVisibility();
   }
+}
+
+function createNormalCheckDebugSnapshot(args: {
+  currentTimeSec: number;
+  lastObservedCurrentTimeSec: number;
+  nowMs: number;
+  lastTimeChangeAtMs: number;
+  enabled: boolean;
+  paused: boolean;
+  ended: boolean;
+  stalled: boolean;
+}): NormalCheckDebugSnapshot {
+  const deltaSec = args.currentTimeSec - args.lastObservedCurrentTimeSec;
+
+  return {
+    currentTimeSec: args.currentTimeSec,
+    lastObservedCurrentTimeSec: args.lastObservedCurrentTimeSec,
+    deltaSec,
+    timeMoved: Math.abs(deltaSec) > TIME_CHANGE_EPSILON_SEC,
+    idleSec: Math.max(0, (args.nowMs - args.lastTimeChangeAtMs) / 1000),
+    thresholdSec: NO_TIME_CHANGE_THRESHOLD_MS / 1000,
+    epsilonSec: TIME_CHANGE_EPSILON_SEC,
+    enabled: args.enabled,
+    stalled: args.stalled,
+    paused: args.paused,
+    ended: args.ended,
+  };
 }
 
 function handleStall(now: number, reason: "currentTime" | "deepCheck") {
@@ -494,7 +566,11 @@ function sampleDeepCheckAudio(
 function evaluateDeepCheck(
   video: HTMLVideoElement,
   nowMs: number,
-  options?: { inWarmup?: boolean; warmupRemainingMs?: number },
+  options?: {
+    inWarmup?: boolean;
+    warmupRemainingMs?: number;
+    normalCheck?: NormalCheckDebugSnapshot;
+  },
 ): boolean {
   if (!deepCheckModeEnabled || !deepCheckAvailable) {
     return false;
@@ -703,7 +779,11 @@ function updateDeepCheckDebugPanel(
   audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">,
   stalled: boolean,
   nowMs: number,
-  options?: { inWarmup?: boolean; warmupRemainingMs?: number },
+  options?: {
+    inWarmup?: boolean;
+    warmupRemainingMs?: number;
+    normalCheck?: NormalCheckDebugSnapshot;
+  },
 ) {
   const panel = ensureDeepCheckDebugPanel();
   if (!panel) return;
@@ -713,7 +793,20 @@ function updateDeepCheckDebugPanel(
 
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
+  const normalCheck = options?.normalCheck;
   panel.stats.textContent = [
+    "normal check",
+    `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
+      normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
+    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${normalCheck?.timeMoved ?? false}`,
+    `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
+      normalCheck?.thresholdSec ?? NO_TIME_CHANGE_THRESHOLD_MS / 1000
+    } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? TIME_CHANGE_EPSILON_SEC.toFixed(2)}`,
+    `enabled=${normalCheck?.enabled ?? false} paused=${normalCheck?.paused ?? false} ended=${
+      normalCheck?.ended ?? false
+    } stalled=${normalCheck?.stalled ?? false}`,
+    "",
+    "deep check",
     `frameDiff=${
       typeof visual.frameAverageDiff === "number" ? visual.frameAverageDiff.toFixed(2) : "n/a"
     } changed=${visual.frameChanged} eligible=${visual.visualEligible}`,
