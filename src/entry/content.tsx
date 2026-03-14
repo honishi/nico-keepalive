@@ -675,17 +675,12 @@ function hideMonitorDebugOverlay() {
   }
 }
 
-function updateMonitorDebugOverlayVisibility() {
-  if (!monitorDebugOverlayEnabled || !enabled) {
-    hideMonitorDebugOverlay();
-  }
-}
-
 function ensureMonitorDebugOverlay(): {
   root: HTMLDivElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
-  stats: HTMLPreElement;
+  normalStats: HTMLPreElement;
+  deepStats: HTMLPreElement;
 } | null {
   if (!monitorDebugOverlayEnabled) return null;
 
@@ -697,9 +692,12 @@ function ensureMonitorDebugOverlay(): {
     const currentCanvas = existing.querySelector(
       "[data-role='current']",
     ) as HTMLCanvasElement | null;
-    const stats = existing.querySelector("[data-role='stats']") as HTMLPreElement | null;
-    if (previousCanvas && currentCanvas && stats) {
-      return { root: existing, previousCanvas, currentCanvas, stats };
+    const normalStats = existing.querySelector(
+      "[data-role='normal-stats']",
+    ) as HTMLPreElement | null;
+    const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
+    if (previousCanvas && currentCanvas && normalStats && deepStats) {
+      return { root: existing, previousCanvas, currentCanvas, normalStats, deepStats };
     }
   }
 
@@ -723,6 +721,21 @@ function ensureMonitorDebugOverlay(): {
   title.textContent = "monitor debug";
   title.style.marginBottom = "8px";
   title.style.fontWeight = "700";
+
+  const normalTitle = document.createElement("div");
+  normalTitle.textContent = "🔵 normal check";
+  normalTitle.style.marginBottom = "4px";
+  normalTitle.style.fontWeight = "700";
+
+  const normalStats = document.createElement("pre");
+  normalStats.dataset.role = "normal-stats";
+  normalStats.style.margin = "0 0 10px";
+  normalStats.style.whiteSpace = "pre-wrap";
+
+  const deepTitle = document.createElement("div");
+  deepTitle.textContent = "🔵 deep check";
+  deepTitle.style.marginBottom = "4px";
+  deepTitle.style.fontWeight = "700";
 
   const canvases = document.createElement("div");
   canvases.style.display = "flex";
@@ -758,17 +771,20 @@ function ensureMonitorDebugOverlay(): {
   canvases.appendChild(arrow);
   canvases.appendChild(currentCanvas);
 
-  const stats = document.createElement("pre");
-  stats.dataset.role = "stats";
-  stats.style.margin = "0";
-  stats.style.whiteSpace = "pre-wrap";
+  const deepStats = document.createElement("pre");
+  deepStats.dataset.role = "deep-stats";
+  deepStats.style.margin = "0";
+  deepStats.style.whiteSpace = "pre-wrap";
 
   root.appendChild(title);
+  root.appendChild(normalTitle);
+  root.appendChild(normalStats);
+  root.appendChild(deepTitle);
   root.appendChild(canvases);
-  root.appendChild(stats);
+  root.appendChild(deepStats);
   document.body.appendChild(root);
 
-  return { root, previousCanvas, currentCanvas, stats };
+  return { root, previousCanvas, currentCanvas, normalStats, deepStats };
 }
 
 function drawFrameThumbnail(
@@ -816,8 +832,7 @@ function updateMonitorDebugOverlay(
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
   const normalCheck = options?.normalCheck;
-  panel.stats.textContent = [
-    "normal check",
+  panel.normalStats.textContent = [
     `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
       normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
     } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${normalCheck?.timeMoved ?? false}`,
@@ -827,8 +842,8 @@ function updateMonitorDebugOverlay(
     `enabled=${normalCheck?.enabled ?? false} paused=${normalCheck?.paused ?? false} ended=${
       normalCheck?.ended ?? false
     } stalled=${normalCheck?.stalled ?? false}`,
-    "",
-    "deep check",
+  ].join("\n");
+  panel.deepStats.textContent = [
     `frameDiff=${
       typeof deepCheck?.visual.frameAverageDiff === "number"
         ? deepCheck.visual.frameAverageDiff.toFixed(2)
