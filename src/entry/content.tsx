@@ -371,11 +371,13 @@ function handleStall(now: number, reason: "currentTime" | "deepCheck") {
   void saveFullscreenStateBeforeReload();
   logInfo(
     reason === "deepCheck"
-      ? `deep check mode により停止を検知、${Math.ceil(COUNTDOWN_MS / 1000)}秒後にリロードします`
+      ? `高度な停止チェックにより配信停止を検知しました（映像変化なし・無音）、${Math.ceil(
+          COUNTDOWN_MS / 1000,
+        )}秒後にリロードします`
       : `映像停止を検知、${Math.ceil(COUNTDOWN_MS / 1000)}秒後にリロードします`,
   );
   playReloadSound();
-  showCountdown(COUNTDOWN_MS);
+  showCountdown(COUNTDOWN_MS, reason);
   countdownTimer = window.setTimeout(() => {
     void (async () => {
       logInfo("リロードを実行します");
@@ -901,14 +903,19 @@ function playReloadSound() {
   });
 }
 
-function showCountdown(durationMs: number) {
+function showCountdown(durationMs: number, reason: "currentTime" | "deepCheck") {
   const toast = ensureToast();
   const start = Date.now();
 
   const update = () => {
     const elapsed = Date.now() - start;
     const remaining = Math.max(0, durationMs - elapsed);
-    toast.textContent = `配信停止を検知: ${Math.ceil(remaining / 1000)} 秒後にリロードします`;
+    toast.textContent =
+      reason === "deepCheck"
+        ? `高度な停止チェックにより配信停止を検知: ${Math.ceil(
+            remaining / 1000,
+          )} 秒後にリロードします`
+        : `映像停止を検知: ${Math.ceil(remaining / 1000)} 秒後にリロードします`;
     if (remaining > 0) {
       requestAnimationFrame(update);
     }
