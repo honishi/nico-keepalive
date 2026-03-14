@@ -844,9 +844,14 @@ function updateMonitorDebugOverlay(
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
   const normalCheck = options?.normalCheck;
-  panel.headerStats.textContent = `warmup=${options?.inWarmup === true} remainingSec=${
-    typeof options?.warmupRemainingMs === "number" ? Math.ceil(options.warmupRemainingMs / 1000) : 0
-  }`;
+  panel.headerStats.textContent = [
+    `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
+    `warmup=${options?.inWarmup === true} remainingSec=${
+      typeof options?.warmupRemainingMs === "number"
+        ? Math.ceil(options.warmupRemainingMs / 1000)
+        : 0
+    }`,
+  ].join("\n");
   panel.normalStats.textContent = [
     `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
       normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
@@ -854,9 +859,7 @@ function updateMonitorDebugOverlay(
     `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
       normalCheck?.thresholdSec ?? NO_TIME_CHANGE_THRESHOLD_MS / 1000
     } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? TIME_CHANGE_EPSILON_SEC.toFixed(2)}`,
-    `enabled=${normalCheck?.enabled ?? false} paused=${normalCheck?.paused ?? false} ended=${
-      normalCheck?.ended ?? false
-    } stalled=${normalCheck?.stalled ?? false}`,
+    `enabled=${normalCheck?.enabled ?? false} stalled=${normalCheck?.stalled ?? false}`,
   ].join("\n");
   panel.deepStats.textContent = [
     `frameDiff=${
