@@ -798,6 +798,7 @@ function ensureMonitorDebugOverlay(): {
   const headerStats = document.createElement("pre");
   headerStats.dataset.role = "header-stats";
   headerStats.style.margin = "0 0 10px";
+  headerStats.style.paddingLeft = "12px";
   headerStats.style.whiteSpace = "pre-wrap";
 
   const normalTitle = document.createElement("div");
@@ -809,6 +810,7 @@ function ensureMonitorDebugOverlay(): {
   const normalStats = document.createElement("pre");
   normalStats.dataset.role = "normal-stats";
   normalStats.style.margin = "0 0 10px";
+  normalStats.style.paddingLeft = "12px";
   normalStats.style.whiteSpace = "pre-wrap";
 
   const deepTitle = document.createElement("div");
@@ -822,6 +824,7 @@ function ensureMonitorDebugOverlay(): {
   canvases.style.alignItems = "center";
   canvases.style.gap = "8px";
   canvases.style.marginBottom = "8px";
+  canvases.style.paddingLeft = "12px";
 
   const previousCanvas = document.createElement("canvas");
   previousCanvas.dataset.role = "previous";
@@ -854,6 +857,7 @@ function ensureMonitorDebugOverlay(): {
   const deepStats = document.createElement("pre");
   deepStats.dataset.role = "deep-stats";
   deepStats.style.margin = "0";
+  deepStats.style.paddingLeft = "12px";
   deepStats.style.whiteSpace = "pre-wrap";
 
   body.appendChild(headerStats);
