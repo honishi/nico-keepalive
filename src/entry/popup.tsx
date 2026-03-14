@@ -577,7 +577,7 @@ const App: React.FC = () => {
               <Toggle
                 checked={settings.deepCheckOverlayEnabled ?? false}
                 onChange={handleDeepCheckOverlayToggle}
-                disabled={disabledDeepCheckOptions}
+                disabled={disabledAll}
               />
             </div>
           </div>

@@ -234,20 +234,19 @@ function tick() {
     lastTimeChangeAtMs = nowMs;
     const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
 
-    if (deepCheckModeEnabled) {
-      const deepCheck = evaluateDeepCheck(video, nowMs, {
-        inWarmup: true,
-        warmupRemainingMs: remainingMs,
-      });
-      updateMonitorDebugOverlay(video, nowMs, {
-        inWarmup: true,
-        warmupRemainingMs: remainingMs,
-        normalCheck,
-        deepCheck,
-      });
-    } else {
-      updateMonitorDebugOverlayVisibility();
-    }
+    const deepCheck =
+      deepCheckModeEnabled && debugDeepCheckEnabled
+        ? evaluateDeepCheck(video, nowMs, {
+            inWarmup: true,
+            warmupRemainingMs: remainingMs,
+          })
+        : null;
+    updateMonitorDebugOverlay(video, nowMs, {
+      inWarmup: true,
+      warmupRemainingMs: remainingMs,
+      normalCheck,
+      deepCheck,
+    });
 
     // eslint-disable-next-line no-console
     console.log(
@@ -277,6 +276,19 @@ function tick() {
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
     resetDeepCheckMonitoringState();
+    updateMonitorDebugOverlay(video, nowMs, {
+      normalCheck: createNormalCheckDebugSnapshot({
+        currentTimeSec,
+        lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
+        nowMs,
+        lastTimeChangeAtMs: nowMs,
+        enabled: debugCurrentTimeCheckEnabled,
+        paused,
+        ended,
+        stalled: false,
+      }),
+      deepCheck: null,
+    });
     return;
   }
 
@@ -317,13 +329,9 @@ function tick() {
 
   if (deepCheck?.stalled) {
     handleStall(nowMs, "deepCheck");
-  } else {
-    updateMonitorDebugOverlayVisibility();
   }
 
-  if (deepCheckModeEnabled && debugDeepCheckEnabled) {
-    updateMonitorDebugOverlay(video, nowMs, { normalCheck, deepCheck });
-  }
+  updateMonitorDebugOverlay(video, nowMs, { normalCheck, deepCheck });
 }
 
 function createNormalCheckDebugSnapshot(args: {
@@ -387,7 +395,6 @@ function handleStall(now: number, reason: "currentTime" | "deepCheck") {
 function resetDeepCheckMonitoringState() {
   deepCheckState = createDeepCheckState();
   deepCheckLastFrame = null;
-  hideMonitorDebugOverlay();
 }
 
 function resetDeepCheckModeAvailability() {
@@ -669,7 +676,7 @@ function hideMonitorDebugOverlay() {
 }
 
 function updateMonitorDebugOverlayVisibility() {
-  if (!deepCheckModeEnabled || !debugDeepCheckEnabled || !deepCheckOverlayEnabled || !enabled) {
+  if (!deepCheckOverlayEnabled || !enabled) {
     hideMonitorDebugOverlay();
   }
 }
@@ -803,13 +810,8 @@ function updateMonitorDebugOverlay(
   if (!panel) return;
 
   const deepCheck = options?.deepCheck;
-  if (!deepCheck) {
-    hideMonitorDebugOverlay();
-    return;
-  }
-
-  drawFrameThumbnail(panel.previousCanvas, deepCheck.visual.previousFrame);
-  drawFrameThumbnail(panel.currentCanvas, deepCheck.visual.nextFrame);
+  drawFrameThumbnail(panel.previousCanvas, deepCheck?.visual.previousFrame);
+  drawFrameThumbnail(panel.currentCanvas, deepCheck?.visual.nextFrame);
 
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
@@ -828,22 +830,30 @@ function updateMonitorDebugOverlay(
     "",
     "deep check",
     `frameDiff=${
-      typeof deepCheck.visual.frameAverageDiff === "number"
+      typeof deepCheck?.visual.frameAverageDiff === "number"
         ? deepCheck.visual.frameAverageDiff.toFixed(2)
         : "n/a"
-    } changed=${deepCheck.visual.frameChanged} eligible=${deepCheck.visual.visualEligible}`,
+    } changed=${deepCheck?.visual.frameChanged ?? false} eligible=${
+      deepCheck?.visual.visualEligible ?? false
+    }`,
     `audioRms=${
-      typeof deepCheck.audio.audioRms === "number" ? deepCheck.audio.audioRms.toFixed(2) : "n/a"
-    } silent=${deepCheck.audio.audioSilent} eligible=${deepCheck.audio.audioEligible}`,
-    `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec} thresholdSec=${Math.round(
-      deepCheckThresholdMs / 1000,
-    )}`,
+      typeof deepCheck?.audio.audioRms === "number" ? deepCheck.audio.audioRms.toFixed(2) : "n/a"
+    } silent=${deepCheck?.audio.audioSilent ?? false} eligible=${
+      deepCheck?.audio.audioEligible ?? false
+    }`,
+    `visualIdleSec=${deepCheck ? visualIdleSec : "n/a"} audioIdleSec=${
+      deepCheck ? audioIdleSec : "n/a"
+    } thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
     `warmup=${options?.inWarmup === true} remainingSec=${
       typeof options?.warmupRemainingMs === "number"
         ? Math.ceil(options.warmupRemainingMs / 1000)
         : 0
     }`,
-    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${deepCheck.stalled}`,
+    `enabled=${
+      deepCheckModeEnabled && debugDeepCheckEnabled
+    } available=${deepCheckAvailable} muted=${video.muted} volume=${video.volume.toFixed(
+      2,
+    )} stalled=${deepCheck?.stalled ?? false}`,
   ].join("\n");
 }
 
