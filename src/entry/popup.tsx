@@ -16,7 +16,15 @@ import {
   playNotificationSound,
   clampVolume,
 } from "../shared/sound";
+import {
+  clampDeepCheckThresholdSec,
+  DEFAULT_SETTINGS,
+  DEEP_CHECK_THRESHOLD_MAX_SEC,
+  DEEP_CHECK_THRESHOLD_MIN_SEC,
+} from "../shared/settings";
 import { LOG_MAX, LogEntry, Settings } from "../shared/types";
+
+declare const __DEV__: boolean;
 
 async function updateBadge(enabled: boolean) {
   if (!chrome?.action?.setBadgeText) return;
@@ -91,33 +99,45 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   );
 };
 
-const defaultSettings: Settings = {
-  enabled: true,
-  soundEnabled: true,
-  soundVolume: SOUND_VOLUME_MAX,
-  customSound: null,
-};
+function formatDurationLabel(seconds: number): string {
+  if (seconds < 60) return `${seconds}秒`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (remainingSeconds === 0) return `${minutes}分`;
+  return `${minutes}分${remainingSeconds}秒`;
+}
 
 const App: React.FC = () => {
-  const [settings, setSettingsState] = useState<Settings>(defaultSettings);
+  const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [reloadCount, setReloadCount] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [statusMessageType, setStatusMessageType] = useState<"info" | "error">("info");
   const [customSoundMessage, setCustomSoundMessage] = useState<string>("");
   const [customSoundMessageType, setCustomSoundMessageType] = useState<"info" | "error">("info");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
+  const disabledDeepCheckThreshold = disabledAll || settings.deepCheckModeEnabled !== true;
 
   useEffect(() => {
-    getSettings().then(async (s) => {
-      const merged = { ...defaultSettings, ...s };
-      setSettingsState(merged);
-      await updateBadge(merged.enabled);
-    });
-    getLogs().then(setLogs);
-    getReloadCount().then(setReloadCount);
+    let isMounted = true;
+
+    void (async () => {
+      const [nextSettings, nextLogs, nextReloadCount] = await Promise.all([
+        getSettings(),
+        getLogs(),
+        getReloadCount(),
+      ]);
+
+      if (!isMounted) return;
+      setSettingsState(nextSettings);
+      setLogs(nextLogs);
+      setReloadCount(nextReloadCount);
+      await updateBadge(nextSettings.enabled);
+      setIsLoading(false);
+    })();
 
     const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
       changes,
@@ -145,6 +165,7 @@ const App: React.FC = () => {
       chrome.storage.onChanged.addListener(listener);
     }
     return () => {
+      isMounted = false;
       if (chrome?.storage?.onChanged) {
         chrome.storage.onChanged.removeListener(listener);
       }
@@ -191,6 +212,103 @@ const App: React.FC = () => {
   const handleSoundToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, soundEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDeepCheckModeToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, deepCheckModeEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleMonitorDebugOverlayToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, monitorDebugOverlayEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDeepCheckThresholdChange = async (value: number) => {
+    const previous = settings;
+    const nextThresholdSec = clampDeepCheckThresholdSec(value);
+    const nextSettings = { ...settings, deepCheckThresholdSec: nextThresholdSec };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDebugCurrentTimeCheckToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugCurrentTimeCheckEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDebugWarmupToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugWarmupEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDebugDeepCheckToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugDeepCheckEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -311,6 +429,17 @@ const App: React.FC = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div id="app" className="loading-screen" aria-busy="true">
+        <div className="loading-inline">
+          <span className="loading-spinner" aria-hidden="true" />
+          <p className="loading-text">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="app">
       <section className="section">
@@ -394,6 +523,114 @@ const App: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <section className="section">
+        <p className="heading">実験機能</p>
+        <div className="section-body">
+          <div className="sound-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                高度な停止チェックを有効にする
+                <br />
+                <span className="toggle-note">
+                  映像の変化がなく、音も出ていない状態を停止判定に使います
+                </span>
+              </span>
+              <Toggle
+                checked={settings.deepCheckModeEnabled ?? false}
+                onChange={handleDeepCheckModeToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
+            <div className="slider-block">
+              <div className="slider-header">
+                <span className="slider-label">高度な停止チェックの判定時間</span>
+                <span className="slider-value">
+                  {formatDurationLabel(
+                    settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC,
+                  )}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={DEEP_CHECK_THRESHOLD_MIN_SEC}
+                max={DEEP_CHECK_THRESHOLD_MAX_SEC}
+                step={10}
+                value={settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC}
+                onChange={(e) => handleDeepCheckThresholdChange(Number(e.target.value))}
+                disabled={disabledDeepCheckThreshold}
+              />
+              <div className="slider-scale">
+                <span>20秒</span>
+                <span>3分</span>
+                <span>10分</span>
+              </div>
+            </div>
+
+            <div className="toggle-row">
+              <span className="toggle-label">
+                デバッグ用オーバーレイを表示する
+                <br />
+                <span className="toggle-note">監視の判定状況をページ上に表示します</span>
+              </span>
+              <Toggle
+                checked={settings.monitorDebugOverlayEnabled ?? false}
+                onChange={handleMonitorDebugOverlayToggle}
+                disabled={disabledAll}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {__DEV__ && (
+        <section className="section">
+          <p className="heading">デバッグ</p>
+          <div className="section-body debug-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                warmup を有効にする
+                <br />
+                <span className="toggle-note">
+                  OFF にすると開始直後の 60 秒待ちをスキップします
+                </span>
+              </span>
+              <Toggle
+                checked={settings.debugWarmupEnabled ?? true}
+                onChange={handleDebugWarmupToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
+            <div className="toggle-row">
+              <span className="toggle-label">
+                通常判定を有効にする
+                <br />
+                <span className="toggle-note">currentTime 停滞による停止判定</span>
+              </span>
+              <Toggle
+                checked={settings.debugCurrentTimeCheckEnabled ?? true}
+                onChange={handleDebugCurrentTimeCheckToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
+            <div className="toggle-row">
+              <span className="toggle-label">
+                deep 判定を有効にする
+                <br />
+                <span className="toggle-note">deep check mode が ON のときだけ動作します</span>
+              </span>
+              <Toggle
+                checked={settings.debugDeepCheckEnabled ?? true}
+                onChange={handleDebugDeepCheckToggle}
+                disabled={disabledAll}
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="heading-row">

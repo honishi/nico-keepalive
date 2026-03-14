@@ -33,6 +33,12 @@ export type Settings = {
   soundEnabled?: boolean;
   soundVolume?: number; // 0-100
   customSound?: CustomSound | null;
+  deepCheckModeEnabled?: boolean;
+  deepCheckThresholdSec?: number;
+  monitorDebugOverlayEnabled?: boolean;
+  debugWarmupEnabled?: boolean;
+  debugCurrentTimeCheckEnabled?: boolean;
+  debugDeepCheckEnabled?: boolean;
 };
 
 export const STORAGE_KEYS = {

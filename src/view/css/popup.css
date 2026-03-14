@@ -87,6 +87,45 @@ body {
   gap: 12px;
 }
 
+.loading-screen {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fg-muted);
+}
+
+@keyframes loading-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* 共通セクション */
 .section {
   padding: 8px 4px;
@@ -113,6 +152,11 @@ body {
 .toggle-label {
   font-size: 13px;
   line-height: 1.4;
+}
+
+.toggle-note {
+  font-size: 11px;
+  color: var(--color-fg-subtle);
 }
 
 .toggle {
@@ -165,6 +209,12 @@ body {
   margin-top: 8px;
 }
 
+.debug-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .slider-block {
   display: inline-flex;
   flex-direction: column;
@@ -190,12 +240,15 @@ body {
 
 .slider-block input[type="range"] {
   accent-color: var(--color-accent);
-  min-width: 200px;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
 }
 
 .slider-scale {
   display: flex;
   justify-content: space-between;
+  width: 220px;
   font-size: 11px;
   color: var(--color-fg-subtle);
 }
