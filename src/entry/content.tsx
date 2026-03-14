@@ -373,7 +373,7 @@ function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
     deepCheckAudioContext = new AudioContextCtor();
     deepCheckAnalyser = deepCheckAudioContext.createAnalyser();
     deepCheckAnalyser.fftSize = 2048;
-    deepCheckAudioData = new Uint8Array(deepCheckAnalyser.fftSize);
+    deepCheckAudioData = new Uint8Array(new ArrayBuffer(deepCheckAnalyser.fftSize));
     deepCheckAudioSource = deepCheckAudioContext.createMediaElementSource(video);
     deepCheckAudioSource.connect(deepCheckAnalyser);
     deepCheckAnalyser.connect(deepCheckAudioContext.destination);
@@ -446,11 +446,13 @@ function sampleDeepCheckAudio(
   }
 
   try {
-    deepCheckAnalyser.getByteTimeDomainData(deepCheckAudioData);
-    const audioRms = getTimeDomainRms(deepCheckAudioData);
+    const audioData = new Uint8Array(new ArrayBuffer(deepCheckAudioData.length));
+    deepCheckAnalyser.getByteTimeDomainData(audioData);
+    deepCheckAudioData = audioData;
+    const audioRms = getTimeDomainRms(audioData);
     return {
       audioEligible: true,
-      audioSilent: isSilentFromTimeDomainData(deepCheckAudioData),
+      audioSilent: isSilentFromTimeDomainData(audioData),
       audioRms,
     };
   } catch (err) {
@@ -511,24 +513,27 @@ function logDeepCheckMetrics(
   const frameDiffText =
     typeof visual.frameAverageDiff === "number" ? visual.frameAverageDiff.toFixed(2) : "n/a";
   const audioRmsText = typeof audio.audioRms === "number" ? audio.audioRms.toFixed(2) : "n/a";
+  const context = currentProgramId();
+  const contextPart = context ? `[${context}] ` : "";
+  const providerPart = providerName ? `[${providerName}] ` : "";
+  const message = [
+    "deep check",
+    `frameDiff=${frameDiffText}`,
+    `frameChanged=${visual.frameChanged}`,
+    `visualEligible=${visual.visualEligible}`,
+    `visualIdleSec=${visualIdleSec}`,
+    `audioRms=${audioRmsText}`,
+    `audioSilent=${audio.audioSilent}`,
+    `audioEligible=${audio.audioEligible}`,
+    `audioIdleSec=${audioIdleSec}`,
+    `thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
+    `muted=${video.muted}`,
+    `volume=${video.volume.toFixed(2)}`,
+    `stalled=${stalled}`,
+  ].join(" ");
 
-  logDebug(
-    [
-      "deep check",
-      `frameDiff=${frameDiffText}`,
-      `frameChanged=${visual.frameChanged}`,
-      `visualEligible=${visual.visualEligible}`,
-      `visualIdleSec=${visualIdleSec}`,
-      `audioRms=${audioRmsText}`,
-      `audioSilent=${audio.audioSilent}`,
-      `audioEligible=${audio.audioEligible}`,
-      `audioIdleSec=${audioIdleSec}`,
-      `thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
-      `muted=${video.muted}`,
-      `volume=${video.volume.toFixed(2)}`,
-      `stalled=${stalled}`,
-    ].join(" "),
-  );
+  // eslint-disable-next-line no-console
+  console.log(`[nico-keepalive/content] ${contextPart}${providerPart}${message}`);
 }
 
 function hideDeepCheckDebugPanel() {

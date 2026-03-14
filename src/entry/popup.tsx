@@ -134,8 +134,8 @@ const App: React.FC = () => {
       setSettingsState(nextSettings);
       setLogs(nextLogs);
       setReloadCount(nextReloadCount);
-      setIsLoading(false);
       await updateBadge(nextSettings.enabled);
+      setIsLoading(false);
     })();
 
     const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
@@ -431,9 +431,9 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div id="app" className="loading-screen" aria-busy="true">
-        <div className="loading-card">
-          <p className="loading-title">読み込み中</p>
-          <p className="loading-text">設定と動作状況を取得しています。</p>
+        <div className="loading-inline">
+          <span className="loading-spinner" aria-hidden="true" />
+          <p className="loading-text">読み込み中...</p>
         </div>
       </div>
     );
