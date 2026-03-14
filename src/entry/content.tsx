@@ -2,6 +2,8 @@ import {
   createDeepCheckState,
   DEEP_CHECK_FRAME_HEIGHT,
   DEEP_CHECK_FRAME_WIDTH,
+  getFrameAverageDiff,
+  getTimeDomainRms,
   hasFrameMeaningfulChange,
   isSilentFromTimeDomainData,
   reduceDeepCheckState,
@@ -26,10 +28,13 @@ const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
 const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
+const DEEP_CHECK_DEBUG_PANEL_ID = "nico-keepalive-deep-check-debug";
 const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let deepCheckModeEnabled = false;
+let debugCurrentTimeCheckEnabled = true;
+let debugDeepCheckEnabled = true;
 let soundEnabled = true;
 let soundVolume = 100;
 let customSound: CustomSound | null | undefined = null;
@@ -58,6 +63,10 @@ type DeepCheckSample = {
   frameChanged: boolean;
   audioEligible: boolean;
   audioSilent: boolean;
+  frameAverageDiff?: number;
+  audioRms?: number;
+  previousFrame?: Uint8ClampedArray | null;
+  nextFrame?: Uint8ClampedArray | null;
 };
 
 type AudioContextWithWebkit = Window &
@@ -100,6 +109,8 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
+  debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
+  debugDeepCheckEnabled = normalized.debugDeepCheckEnabled ?? true;
   soundEnabled = normalized.soundEnabled ?? true;
   soundVolume = normalized.soundVolume ?? 100;
   customSound = normalized.customSound ?? null;
@@ -107,6 +118,7 @@ function applySettings(settings: Settings) {
   if (wasDeepCheckEnabled && !deepCheckModeEnabled) {
     cleanupDeepCheckResources();
     resetDeepCheckMonitoringState();
+    hideDeepCheckDebugPanel();
     return;
   }
 
@@ -132,6 +144,7 @@ function stopMonitor() {
   }
   cleanupDeepCheckResources();
   resetDeepCheckMonitoringState();
+  hideDeepCheckDebugPanel();
   clearCountdown();
   hideToast();
   logInfo("モニターを停止しました");
@@ -214,15 +227,19 @@ function tick() {
 
   // 8) 一定時間 currentTime が変わらなければ「停止」とみなす（閾値内なら何もしない）
   const isCurrentTimeStalled =
-    !hasTimeMoved && nowMs - lastTimeChangeAtMs >= NO_TIME_CHANGE_THRESHOLD_MS;
+    debugCurrentTimeCheckEnabled &&
+    !hasTimeMoved &&
+    nowMs - lastTimeChangeAtMs >= NO_TIME_CHANGE_THRESHOLD_MS;
   if (isCurrentTimeStalled) {
     handleStall(nowMs, "currentTime");
     return;
   }
 
   // 9) 追加判定: deep check mode が有効なときだけ、映像変化なし + 無音を確認する
-  if (deepCheckModeEnabled && evaluateDeepCheck(video, nowMs)) {
+  if (deepCheckModeEnabled && debugDeepCheckEnabled && evaluateDeepCheck(video, nowMs)) {
     handleStall(nowMs, "deepCheck");
+  } else if (__DEV__) {
+    updateDeepCheckDebugSectionVisibility();
   }
 }
 
@@ -260,6 +277,7 @@ function handleStall(now: number, reason: "currentTime" | "deepCheck") {
 function resetDeepCheckMonitoringState() {
   deepCheckState = createDeepCheckState();
   deepCheckLastFrame = null;
+  hideDeepCheckDebugPanel();
 }
 
 function resetDeepCheckModeAvailability() {
@@ -354,7 +372,10 @@ function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
 
 function sampleDeepCheckFrame(
   video: HTMLVideoElement,
-): Pick<DeepCheckSample, "visualEligible" | "frameChanged"> {
+): Pick<
+  DeepCheckSample,
+  "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
+> {
   if (!ensureDeepCheckCanvas()) {
     return { visualEligible: false, frameChanged: false };
   }
@@ -372,9 +393,17 @@ function sampleDeepCheckFrame(
       DEEP_CHECK_FRAME_HEIGHT,
     );
     const nextFrame = new Uint8ClampedArray(imageData.data);
-    const frameChanged = hasFrameMeaningfulChange(deepCheckLastFrame, nextFrame);
+    const previousFrame = deepCheckLastFrame ? new Uint8ClampedArray(deepCheckLastFrame) : null;
+    const frameAverageDiff = previousFrame ? getFrameAverageDiff(previousFrame, nextFrame) : 0;
+    const frameChanged = hasFrameMeaningfulChange(previousFrame, nextFrame);
     deepCheckLastFrame = nextFrame;
-    return { visualEligible: true, frameChanged };
+    return {
+      visualEligible: true,
+      frameChanged,
+      frameAverageDiff,
+      previousFrame,
+      nextFrame,
+    };
   } catch (err) {
     disableDeepCheck(`映像フレームを読み取れませんでした: ${String(err)}`);
     return { visualEligible: false, frameChanged: false };
@@ -383,7 +412,7 @@ function sampleDeepCheckFrame(
 
 function sampleDeepCheckAudio(
   video: HTMLVideoElement,
-): Pick<DeepCheckSample, "audioEligible" | "audioSilent"> {
+): Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms"> {
   if (video.muted || video.volume === 0) {
     return { audioEligible: false, audioSilent: false };
   }
@@ -403,9 +432,11 @@ function sampleDeepCheckAudio(
 
   try {
     deepCheckAnalyser.getByteTimeDomainData(deepCheckAudioData);
+    const audioRms = getTimeDomainRms(deepCheckAudioData);
     return {
       audioEligible: true,
       audioSilent: isSilentFromTimeDomainData(deepCheckAudioData),
+      audioRms,
     };
   } catch (err) {
     disableDeepCheck(`音声レベルを読み取れませんでした: ${String(err)}`);
@@ -441,7 +472,197 @@ function evaluateDeepCheck(video: HTMLVideoElement, nowMs: number): boolean {
   );
 
   deepCheckState = result.state;
+  logDeepCheckMetrics(video, visual, audio, result.stalled, nowMs);
+  updateDeepCheckDebugPanel(video, visual, audio, result.stalled, nowMs);
   return result.stalled;
+}
+
+function logDeepCheckMetrics(
+  video: HTMLVideoElement,
+  visual: Pick<
+    DeepCheckSample,
+    "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
+  >,
+  audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">,
+  stalled: boolean,
+  nowMs: number,
+) {
+  const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
+  const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
+  const frameDiffText =
+    typeof visual.frameAverageDiff === "number" ? visual.frameAverageDiff.toFixed(2) : "n/a";
+  const audioRmsText = typeof audio.audioRms === "number" ? audio.audioRms.toFixed(2) : "n/a";
+
+  logDebug(
+    [
+      "deep check",
+      `frameDiff=${frameDiffText}`,
+      `frameChanged=${visual.frameChanged}`,
+      `visualEligible=${visual.visualEligible}`,
+      `visualIdleSec=${visualIdleSec}`,
+      `audioRms=${audioRmsText}`,
+      `audioSilent=${audio.audioSilent}`,
+      `audioEligible=${audio.audioEligible}`,
+      `audioIdleSec=${audioIdleSec}`,
+      `muted=${video.muted}`,
+      `volume=${video.volume.toFixed(2)}`,
+      `stalled=${stalled}`,
+    ].join(" "),
+  );
+}
+
+function hideDeepCheckDebugPanel() {
+  if (!__DEV__) return;
+  const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
+  if (existing && existing.parentElement) {
+    existing.parentElement.removeChild(existing);
+  }
+}
+
+function updateDeepCheckDebugSectionVisibility() {
+  if (!__DEV__) return;
+  if (!deepCheckModeEnabled || !debugDeepCheckEnabled || !enabled) {
+    hideDeepCheckDebugPanel();
+  }
+}
+
+function ensureDeepCheckDebugPanel(): {
+  root: HTMLDivElement;
+  previousCanvas: HTMLCanvasElement;
+  currentCanvas: HTMLCanvasElement;
+  stats: HTMLPreElement;
+} | null {
+  if (!__DEV__) return null;
+
+  const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
+  if (existing instanceof HTMLDivElement) {
+    const previousCanvas = existing.querySelector(
+      "[data-role='previous']",
+    ) as HTMLCanvasElement | null;
+    const currentCanvas = existing.querySelector(
+      "[data-role='current']",
+    ) as HTMLCanvasElement | null;
+    const stats = existing.querySelector("[data-role='stats']") as HTMLPreElement | null;
+    if (previousCanvas && currentCanvas && stats) {
+      return { root: existing, previousCanvas, currentCanvas, stats };
+    }
+  }
+
+  const root = document.createElement("div");
+  root.id = DEEP_CHECK_DEBUG_PANEL_ID;
+  root.style.position = "fixed";
+  root.style.right = "16px";
+  root.style.bottom = "16px";
+  root.style.zIndex = "999999";
+  root.style.padding = "10px";
+  root.style.background = "rgba(0, 0, 0, 0.85)";
+  root.style.color = "#fff";
+  root.style.borderRadius = "8px";
+  root.style.fontFamily = "ui-monospace, SFMono-Regular, monospace";
+  root.style.fontSize = "11px";
+  root.style.lineHeight = "1.4";
+  root.style.pointerEvents = "none";
+  root.style.maxWidth = "360px";
+
+  const title = document.createElement("div");
+  title.textContent = "deep check debug";
+  title.style.marginBottom = "8px";
+  title.style.fontWeight = "700";
+
+  const canvases = document.createElement("div");
+  canvases.style.display = "flex";
+  canvases.style.gap = "8px";
+  canvases.style.marginBottom = "8px";
+
+  const previousCanvas = document.createElement("canvas");
+  previousCanvas.dataset.role = "previous";
+  previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
+  previousCanvas.height = DEEP_CHECK_FRAME_HEIGHT;
+  previousCanvas.style.width = "128px";
+  previousCanvas.style.height = "72px";
+  previousCanvas.style.background = "#111";
+  previousCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
+
+  const currentCanvas = document.createElement("canvas");
+  currentCanvas.dataset.role = "current";
+  currentCanvas.width = DEEP_CHECK_FRAME_WIDTH;
+  currentCanvas.height = DEEP_CHECK_FRAME_HEIGHT;
+  currentCanvas.style.width = "128px";
+  currentCanvas.style.height = "72px";
+  currentCanvas.style.background = "#111";
+  currentCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
+
+  canvases.appendChild(previousCanvas);
+  canvases.appendChild(currentCanvas);
+
+  const stats = document.createElement("pre");
+  stats.dataset.role = "stats";
+  stats.style.margin = "0";
+  stats.style.whiteSpace = "pre-wrap";
+
+  root.appendChild(title);
+  root.appendChild(canvases);
+  root.appendChild(stats);
+  document.body.appendChild(root);
+
+  return { root, previousCanvas, currentCanvas, stats };
+}
+
+function drawFrameThumbnail(
+  targetCanvas: HTMLCanvasElement,
+  frame: Uint8ClampedArray | null | undefined,
+) {
+  const context = targetCanvas.getContext("2d");
+  if (!context) return;
+
+  context.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+  if (!frame) {
+    context.fillStyle = "#111";
+    context.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+    context.fillStyle = "#999";
+    context.font = "6px sans-serif";
+    context.fillText("n/a", 2, 8);
+    return;
+  }
+
+  const imageData = new ImageData(
+    new Uint8ClampedArray(frame),
+    DEEP_CHECK_FRAME_WIDTH,
+    DEEP_CHECK_FRAME_HEIGHT,
+  );
+  context.putImageData(imageData, 0, 0);
+}
+
+function updateDeepCheckDebugPanel(
+  video: HTMLVideoElement,
+  visual: Pick<
+    DeepCheckSample,
+    "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
+  >,
+  audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">,
+  stalled: boolean,
+  nowMs: number,
+) {
+  if (!__DEV__) return;
+
+  const panel = ensureDeepCheckDebugPanel();
+  if (!panel) return;
+
+  drawFrameThumbnail(panel.previousCanvas, visual.previousFrame);
+  drawFrameThumbnail(panel.currentCanvas, visual.nextFrame);
+
+  const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
+  const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
+  panel.stats.textContent = [
+    `frameDiff=${
+      typeof visual.frameAverageDiff === "number" ? visual.frameAverageDiff.toFixed(2) : "n/a"
+    } changed=${visual.frameChanged} eligible=${visual.visualEligible}`,
+    `audioRms=${typeof audio.audioRms === "number" ? audio.audioRms.toFixed(2) : "n/a"} silent=${
+      audio.audioSilent
+    } eligible=${audio.audioEligible}`,
+    `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec}`,
+    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${stalled}`,
+  ].join("\n");
 }
 
 function clearCountdown() {
@@ -455,6 +676,8 @@ function getCurrentSettings(): Settings {
   return {
     enabled,
     deepCheckModeEnabled,
+    debugCurrentTimeCheckEnabled,
+    debugDeepCheckEnabled,
     soundEnabled,
     soundVolume,
     customSound,

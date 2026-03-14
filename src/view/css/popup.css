@@ -170,6 +170,12 @@ body {
   margin-top: 8px;
 }
 
+.debug-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .slider-block {
   display: inline-flex;
   flex-direction: column;

@@ -6,6 +6,8 @@ export const DEFAULT_SETTINGS: Settings = {
   soundVolume: 100,
   customSound: null,
   deepCheckModeEnabled: false,
+  debugCurrentTimeCheckEnabled: true,
+  debugDeepCheckEnabled: true,
 };
 
 export function normalizeSettings(settings?: Partial<Settings> | null): Settings {

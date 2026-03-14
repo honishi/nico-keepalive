@@ -34,6 +34,8 @@ export type Settings = {
   soundVolume?: number; // 0-100
   customSound?: CustomSound | null;
   deepCheckModeEnabled?: boolean;
+  debugCurrentTimeCheckEnabled?: boolean;
+  debugDeepCheckEnabled?: boolean;
 };
 
 export const STORAGE_KEYS = {

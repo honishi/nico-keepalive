@@ -19,6 +19,8 @@ import {
 import { DEFAULT_SETTINGS } from "../shared/settings";
 import { LOG_MAX, LogEntry, Settings } from "../shared/types";
 
+declare const __DEV__: boolean;
+
 async function updateBadge(enabled: boolean) {
   if (!chrome?.action?.setBadgeText) return;
   try {
@@ -200,6 +202,38 @@ const App: React.FC = () => {
   const handleDeepCheckModeToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, deepCheckModeEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDebugCurrentTimeCheckToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugCurrentTimeCheckEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDebugDeepCheckToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugDeepCheckEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -418,6 +452,39 @@ const App: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {__DEV__ && (
+        <section className="section">
+          <p className="heading">デバッグ</p>
+          <div className="section-body debug-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                通常判定を有効にする
+                <br />
+                <span className="toggle-note">currentTime 停滞による停止判定</span>
+              </span>
+              <Toggle
+                checked={settings.debugCurrentTimeCheckEnabled ?? true}
+                onChange={handleDebugCurrentTimeCheckToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
+            <div className="toggle-row">
+              <span className="toggle-label">
+                deep 判定を有効にする
+                <br />
+                <span className="toggle-note">deep check mode が ON のときだけ動作します</span>
+              </span>
+              <Toggle
+                checked={settings.debugDeepCheckEnabled ?? true}
+                onChange={handleDebugDeepCheckToggle}
+                disabled={disabledAll}
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="heading-row">
