@@ -881,7 +881,7 @@ function updateMonitorDebugOverlay(
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${
     deepCheckModeEnabled && debugDeepCheckEnabled
-  })`;
+  } available=${deepCheckAvailable})`;
   panel.headerStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
     `warmup=${options?.inWarmup === true} remainingSec=${
@@ -915,9 +915,7 @@ function updateMonitorDebugOverlay(
     `visualIdleSec=${deepCheck ? visualIdleSec : "n/a"} audioIdleSec=${
       deepCheck ? audioIdleSec : "n/a"
     } thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
-    `available=${deepCheckAvailable} muted=${video.muted} volume=${video.volume.toFixed(
-      2,
-    )} stalled=${deepCheck?.stalled ?? false}`,
+    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${deepCheck?.stalled ?? false}`,
   ].join("\n");
 }
 
