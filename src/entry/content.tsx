@@ -930,9 +930,9 @@ function ensureToast(): HTMLDivElement {
   const div = document.createElement("div");
   div.id = TOAST_ID;
   div.style.position = "fixed";
-  div.style.left = "16px";
-  div.style.top = "16px";
-  div.style.transform = "none";
+  div.style.left = "50%";
+  div.style.top = "50%";
+  div.style.transform = "translate(-50%, -50%)";
   div.style.padding = "10px 14px";
   div.style.background = "rgba(0, 0, 0, 0.8)";
   div.style.color = "#fff";
