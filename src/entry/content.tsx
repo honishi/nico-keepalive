@@ -717,6 +717,8 @@ function hideMonitorDebugOverlay() {
 
 function ensureMonitorDebugOverlay(): {
   root: HTMLDivElement;
+  header: HTMLDivElement;
+  title: HTMLDivElement;
   body: HTMLDivElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
@@ -731,6 +733,8 @@ function ensureMonitorDebugOverlay(): {
 
   const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
+    const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
+    const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
     const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
     const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
     const previousCanvas = existing.querySelector(
@@ -751,6 +755,8 @@ function ensureMonitorDebugOverlay(): {
     const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
+      header &&
+      title &&
       body &&
       toggleButton &&
       previousCanvas &&
@@ -763,6 +769,8 @@ function ensureMonitorDebugOverlay(): {
     ) {
       return {
         root: existing,
+        header,
+        title,
         body,
         toggleButton,
         previousCanvas,
@@ -793,6 +801,7 @@ function ensureMonitorDebugOverlay(): {
   root.style.maxWidth = "360px";
 
   const header = document.createElement("div");
+  header.dataset.role = "header";
   header.style.display = "flex";
   header.style.alignItems = "center";
   header.style.justifyContent = "space-between";
@@ -800,6 +809,7 @@ function ensureMonitorDebugOverlay(): {
   header.style.marginBottom = "8px";
 
   const title = document.createElement("div");
+  title.dataset.role = "title";
   title.textContent = "🔵 nico-keepalive debug overlay";
   title.style.fontWeight = "700";
 
@@ -816,12 +826,28 @@ function ensureMonitorDebugOverlay(): {
   toggleButton.style.lineHeight = "1";
   toggleButton.style.padding = "2px 6px";
   toggleButton.style.cursor = "pointer";
+
+  const applyMinimizedState = () => {
+    root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
+    header.style.marginBottom = monitorDebugOverlayMinimized ? "0" : "8px";
+    title.textContent = monitorDebugOverlayMinimized
+      ? "🔵 nico-keepalive"
+      : "🔵 nico-keepalive debug overlay";
+    body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
+    toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+  };
+
   toggleButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     monitorDebugOverlayMinimized = !monitorDebugOverlayMinimized;
-    body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
-    toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+    applyMinimizedState();
+  });
+  header.addEventListener("click", (event) => {
+    if (!monitorDebugOverlayMinimized) return;
+    event.preventDefault();
+    monitorDebugOverlayMinimized = false;
+    applyMinimizedState();
   });
 
   header.appendChild(title);
@@ -906,10 +932,13 @@ function ensureMonitorDebugOverlay(): {
 
   root.appendChild(header);
   root.appendChild(body);
+  applyMinimizedState();
   document.body.appendChild(root);
 
   return {
     root,
+    header,
+    title,
     body,
     toggleButton,
     previousCanvas,
@@ -959,6 +988,11 @@ function updateMonitorDebugOverlay(
 ) {
   const panel = ensureMonitorDebugOverlay();
   if (!panel) return;
+  panel.root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
+  panel.header.style.marginBottom = monitorDebugOverlayMinimized ? "0" : "8px";
+  panel.title.textContent = monitorDebugOverlayMinimized
+    ? "🔵 nico-keepalive"
+    : "🔵 nico-keepalive debug overlay";
   panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
 
