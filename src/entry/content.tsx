@@ -681,6 +681,7 @@ function ensureMonitorDebugOverlay(): {
   root: HTMLDivElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
+  headerStats: HTMLPreElement;
   normalStats: HTMLPreElement;
   deepStats: HTMLPreElement;
 } | null {
@@ -694,12 +695,15 @@ function ensureMonitorDebugOverlay(): {
     const currentCanvas = existing.querySelector(
       "[data-role='current']",
     ) as HTMLCanvasElement | null;
+    const headerStats = existing.querySelector(
+      "[data-role='header-stats']",
+    ) as HTMLPreElement | null;
     const normalStats = existing.querySelector(
       "[data-role='normal-stats']",
     ) as HTMLPreElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
-    if (previousCanvas && currentCanvas && normalStats && deepStats) {
-      return { root: existing, previousCanvas, currentCanvas, normalStats, deepStats };
+    if (previousCanvas && currentCanvas && headerStats && normalStats && deepStats) {
+      return { root: existing, previousCanvas, currentCanvas, headerStats, normalStats, deepStats };
     }
   }
 
@@ -720,9 +724,14 @@ function ensureMonitorDebugOverlay(): {
   root.style.maxWidth = "360px";
 
   const title = document.createElement("div");
-  title.textContent = "monitor debug";
+  title.textContent = "⚪️ nico-keepalive debug overlay";
   title.style.marginBottom = "8px";
   title.style.fontWeight = "700";
+
+  const headerStats = document.createElement("pre");
+  headerStats.dataset.role = "header-stats";
+  headerStats.style.margin = "0 0 10px";
+  headerStats.style.whiteSpace = "pre-wrap";
 
   const normalTitle = document.createElement("div");
   normalTitle.textContent = "🔵 normal check";
@@ -779,6 +788,7 @@ function ensureMonitorDebugOverlay(): {
   deepStats.style.whiteSpace = "pre-wrap";
 
   root.appendChild(title);
+  root.appendChild(headerStats);
   root.appendChild(normalTitle);
   root.appendChild(normalStats);
   root.appendChild(deepTitle);
@@ -786,7 +796,7 @@ function ensureMonitorDebugOverlay(): {
   root.appendChild(deepStats);
   document.body.appendChild(root);
 
-  return { root, previousCanvas, currentCanvas, normalStats, deepStats };
+  return { root, previousCanvas, currentCanvas, headerStats, normalStats, deepStats };
 }
 
 function drawFrameThumbnail(
@@ -834,6 +844,9 @@ function updateMonitorDebugOverlay(
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
   const normalCheck = options?.normalCheck;
+  panel.headerStats.textContent = `warmup=${options?.inWarmup === true} remainingSec=${
+    typeof options?.warmupRemainingMs === "number" ? Math.ceil(options.warmupRemainingMs / 1000) : 0
+  }`;
   panel.normalStats.textContent = [
     `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
       normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
@@ -861,11 +874,6 @@ function updateMonitorDebugOverlay(
     `visualIdleSec=${deepCheck ? visualIdleSec : "n/a"} audioIdleSec=${
       deepCheck ? audioIdleSec : "n/a"
     } thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
-    `warmup=${options?.inWarmup === true} remainingSec=${
-      typeof options?.warmupRemainingMs === "number"
-        ? Math.ceil(options.warmupRemainingMs / 1000)
-        : 0
-    }`,
     `enabled=${
       deepCheckModeEnabled && debugDeepCheckEnabled
     } available=${deepCheckAvailable} muted=${video.muted} volume=${video.volume.toFixed(
