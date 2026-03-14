@@ -58,6 +58,7 @@ let deepCheckAnalyser: AnalyserNode | null = null;
 let deepCheckAudioData: Uint8Array | null = null;
 let deepCheckAudioSource: MediaStreamAudioSourceNode | null = null;
 let deepCheckAudioStream: MediaStream | null = null;
+let deepCheckAudioTrackSignature: string | null = null;
 let deepCheckSourceVideo: HTMLVideoElement | null = null;
 let deepCheckAvailable = true;
 let deepCheckFallbackLogged = false;
@@ -106,6 +107,21 @@ type HTMLVideoElementWithCapture = HTMLVideoElement & {
   captureStream?: () => MediaStream;
   mozCaptureStream?: () => MediaStream;
 };
+
+function getDeepCheckAudioTrackSignature(stream: MediaStream | null): string {
+  if (!stream) return "n/a";
+
+  const tracks = stream.getAudioTracks();
+  if (tracks.length === 0) return "none";
+
+  return tracks
+    .map((track) => {
+      return [track.id, track.readyState, track.enabled ? "1" : "0", track.muted ? "1" : "0"].join(
+        ":",
+      );
+    })
+    .join("|");
+}
 
 async function init() {
   await restoreFullscreenAfterReload();
@@ -413,6 +429,7 @@ function cleanupDeepCheckResources() {
   deepCheckAudioData = null;
   deepCheckSourceVideo = null;
   deepCheckAudioStream = null;
+  deepCheckAudioTrackSignature = null;
 
   if (deepCheckAudioSource) {
     deepCheckAudioSource.disconnect();
@@ -461,6 +478,12 @@ function ensureDeepCheckCanvas(): boolean {
 
 function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
   if (deepCheckSourceVideo && deepCheckSourceVideo !== video) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[nico-keepalive/content] deep check audio reset: source video changed currentTime=${video.currentTime.toFixed(
+        2,
+      )}`,
+    );
     cleanupDeepCheckResources();
     resetDeepCheckMonitoringState();
   }
@@ -470,9 +493,22 @@ function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
     deepCheckAnalyser &&
     deepCheckAudioData &&
     deepCheckAudioSource &&
+    deepCheckAudioStream &&
     deepCheckSourceVideo === video
   ) {
-    return true;
+    const currentTrackSignature = getDeepCheckAudioTrackSignature(deepCheckAudioStream);
+    if (currentTrackSignature === deepCheckAudioTrackSignature) {
+      return true;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[nico-keepalive/content] deep check audio reset: audio tracks changed previous=${
+        deepCheckAudioTrackSignature ?? "n/a"
+      } current=${currentTrackSignature} currentTime=${video.currentTime.toFixed(2)}`,
+    );
+    cleanupDeepCheckResources();
+    resetDeepCheckMonitoringState();
   }
 
   const AudioContextCtor =
@@ -506,6 +542,7 @@ function ensureDeepCheckAudio(video: HTMLVideoElement): boolean {
     deepCheckAudioData = new Uint8Array(new ArrayBuffer(deepCheckAnalyser.fftSize));
     deepCheckAudioSource = deepCheckAudioContext.createMediaStreamSource(deepCheckAudioStream);
     deepCheckAudioSource.connect(deepCheckAnalyser);
+    deepCheckAudioTrackSignature = getDeepCheckAudioTrackSignature(deepCheckAudioStream);
     deepCheckSourceVideo = video;
     return true;
   } catch (err) {
