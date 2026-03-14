@@ -34,6 +34,7 @@ export type Settings = {
   soundVolume?: number; // 0-100
   customSound?: CustomSound | null;
   deepCheckModeEnabled?: boolean;
+  deepCheckOverlayEnabled?: boolean;
   debugWarmupEnabled?: boolean;
   debugCurrentTimeCheckEnabled?: boolean;
   debugDeepCheckEnabled?: boolean;

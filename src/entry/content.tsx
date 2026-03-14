@@ -33,6 +33,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let deepCheckModeEnabled = false;
+let deepCheckOverlayEnabled = false;
 let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
 let debugDeepCheckEnabled = true;
@@ -110,6 +111,7 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
+  deepCheckOverlayEnabled = normalized.deepCheckOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
   debugDeepCheckEnabled = normalized.debugDeepCheckEnabled ?? true;
@@ -127,6 +129,10 @@ function applySettings(settings: Settings) {
   if (!wasDeepCheckEnabled && deepCheckModeEnabled) {
     cleanupDeepCheckResources();
     resetDeepCheckModeAvailability();
+  }
+
+  if (!deepCheckOverlayEnabled) {
+    hideDeepCheckDebugPanel();
   }
 }
 
@@ -240,7 +246,7 @@ function tick() {
   // 9) 追加判定: deep check mode が有効なときだけ、映像変化なし + 無音を確認する
   if (deepCheckModeEnabled && debugDeepCheckEnabled && evaluateDeepCheck(video, nowMs)) {
     handleStall(nowMs, "deepCheck");
-  } else if (__DEV__) {
+  } else {
     updateDeepCheckDebugSectionVisibility();
   }
 }
@@ -514,7 +520,6 @@ function logDeepCheckMetrics(
 }
 
 function hideDeepCheckDebugPanel() {
-  if (!__DEV__) return;
   const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
@@ -522,8 +527,7 @@ function hideDeepCheckDebugPanel() {
 }
 
 function updateDeepCheckDebugSectionVisibility() {
-  if (!__DEV__) return;
-  if (!deepCheckModeEnabled || !debugDeepCheckEnabled || !enabled) {
+  if (!deepCheckModeEnabled || !debugDeepCheckEnabled || !deepCheckOverlayEnabled || !enabled) {
     hideDeepCheckDebugPanel();
   }
 }
@@ -534,7 +538,7 @@ function ensureDeepCheckDebugPanel(): {
   currentCanvas: HTMLCanvasElement;
   stats: HTMLPreElement;
 } | null {
-  if (!__DEV__) return null;
+  if (!deepCheckOverlayEnabled) return null;
 
   const existing = document.getElementById(DEEP_CHECK_DEBUG_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
@@ -653,8 +657,6 @@ function updateDeepCheckDebugPanel(
   stalled: boolean,
   nowMs: number,
 ) {
-  if (!__DEV__) return;
-
   const panel = ensureDeepCheckDebugPanel();
   if (!panel) return;
 
@@ -686,6 +688,8 @@ function getCurrentSettings(): Settings {
   return {
     enabled,
     deepCheckModeEnabled,
+    deepCheckOverlayEnabled,
+    debugWarmupEnabled,
     debugCurrentTimeCheckEnabled,
     debugDeepCheckEnabled,
     soundEnabled,

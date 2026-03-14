@@ -215,6 +215,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDeepCheckOverlayToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, deepCheckOverlayEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
   const handleDebugCurrentTimeCheckToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, debugCurrentTimeCheckEnabled: next };
@@ -469,6 +485,19 @@ const App: React.FC = () => {
               <Toggle
                 checked={settings.deepCheckModeEnabled ?? false}
                 onChange={handleDeepCheckModeToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
+            <div className="toggle-row">
+              <span className="toggle-label">
+                デバッグ用オーバーレイを表示する
+                <br />
+                <span className="toggle-note">フレーム比較と判定状況をページ上に表示します</span>
+              </span>
+              <Toggle
+                checked={settings.deepCheckOverlayEnabled ?? false}
+                onChange={handleDeepCheckOverlayToggle}
                 disabled={disabledAll}
               />
             </div>
