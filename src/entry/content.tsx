@@ -61,6 +61,7 @@ let deepCheckAudioStream: MediaStream | null = null;
 let deepCheckSourceVideo: HTMLVideoElement | null = null;
 let deepCheckAvailable = true;
 let deepCheckFallbackLogged = false;
+let monitorDebugOverlayMinimized = false;
 
 type DeepCheckSample = {
   visualEligible: boolean;
@@ -679,6 +680,8 @@ function hideMonitorDebugOverlay() {
 
 function ensureMonitorDebugOverlay(): {
   root: HTMLDivElement;
+  body: HTMLDivElement;
+  toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
   headerStats: HTMLPreElement;
@@ -691,6 +694,8 @@ function ensureMonitorDebugOverlay(): {
 
   const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
+    const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
+    const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
     const previousCanvas = existing.querySelector(
       "[data-role='previous']",
     ) as HTMLCanvasElement | null;
@@ -709,6 +714,8 @@ function ensureMonitorDebugOverlay(): {
     const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
+      body &&
+      toggleButton &&
       previousCanvas &&
       currentCanvas &&
       headerStats &&
@@ -719,6 +726,8 @@ function ensureMonitorDebugOverlay(): {
     ) {
       return {
         root: existing,
+        body,
+        toggleButton,
         previousCanvas,
         currentCanvas,
         headerStats,
@@ -733,7 +742,7 @@ function ensureMonitorDebugOverlay(): {
   const root = document.createElement("div");
   root.id = MONITOR_DEBUG_PANEL_ID;
   root.style.position = "fixed";
-  root.style.right = "16px";
+  root.style.left = "16px";
   root.style.top = "16px";
   root.style.zIndex = "999999";
   root.style.padding = "10px";
@@ -743,13 +752,48 @@ function ensureMonitorDebugOverlay(): {
   root.style.fontFamily = "ui-monospace, SFMono-Regular, monospace";
   root.style.fontSize = "11px";
   root.style.lineHeight = "1.4";
-  root.style.pointerEvents = "none";
+  root.style.pointerEvents = "auto";
   root.style.maxWidth = "360px";
+
+  const header = document.createElement("div");
+  header.style.display = "flex";
+  header.style.alignItems = "center";
+  header.style.justifyContent = "space-between";
+  header.style.gap = "8px";
+  header.style.marginBottom = "8px";
 
   const title = document.createElement("div");
   title.textContent = "⚪️ nico-keepalive debug overlay";
-  title.style.marginBottom = "8px";
   title.style.fontWeight = "700";
+
+  const toggleButton = document.createElement("button");
+  toggleButton.dataset.role = "toggle";
+  toggleButton.type = "button";
+  toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+  toggleButton.style.pointerEvents = "auto";
+  toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
+  toggleButton.style.background = "rgba(255,255,255,0.08)";
+  toggleButton.style.color = "#fff";
+  toggleButton.style.borderRadius = "4px";
+  toggleButton.style.font = "inherit";
+  toggleButton.style.lineHeight = "1";
+  toggleButton.style.padding = "2px 6px";
+  toggleButton.style.cursor = "pointer";
+  toggleButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    monitorDebugOverlayMinimized = !monitorDebugOverlayMinimized;
+    body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
+    toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+  });
+
+  header.appendChild(title);
+  header.appendChild(toggleButton);
+
+  const body = document.createElement("div");
+  body.dataset.role = "body";
+  body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
+  body.style.pointerEvents = "none";
 
   const headerStats = document.createElement("pre");
   headerStats.dataset.role = "header-stats";
@@ -812,17 +856,21 @@ function ensureMonitorDebugOverlay(): {
   deepStats.style.margin = "0";
   deepStats.style.whiteSpace = "pre-wrap";
 
-  root.appendChild(title);
-  root.appendChild(headerStats);
-  root.appendChild(normalTitle);
-  root.appendChild(normalStats);
-  root.appendChild(deepTitle);
-  root.appendChild(canvases);
-  root.appendChild(deepStats);
+  body.appendChild(headerStats);
+  body.appendChild(normalTitle);
+  body.appendChild(normalStats);
+  body.appendChild(deepTitle);
+  body.appendChild(canvases);
+  body.appendChild(deepStats);
+
+  root.appendChild(header);
+  root.appendChild(body);
   document.body.appendChild(root);
 
   return {
     root,
+    body,
+    toggleButton,
     previousCanvas,
     currentCanvas,
     headerStats,
@@ -870,6 +918,8 @@ function updateMonitorDebugOverlay(
 ) {
   const panel = ensureMonitorDebugOverlay();
   if (!panel) return;
+  panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
+  panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
 
   const deepCheck = options?.deepCheck;
   drawFrameThumbnail(panel.previousCanvas, deepCheck?.visual.previousFrame);
