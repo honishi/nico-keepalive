@@ -119,6 +119,7 @@ const App: React.FC = () => {
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
+  const disabledDeepCheckOptions = disabledAll || settings.deepCheckModeEnabled !== true;
 
   useEffect(() => {
     let isMounted = true;
@@ -558,7 +559,7 @@ const App: React.FC = () => {
                 step={10}
                 value={settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC}
                 onChange={(e) => handleDeepCheckThresholdChange(Number(e.target.value))}
-                disabled={disabledAll}
+                disabled={disabledDeepCheckOptions}
               />
               <div className="slider-scale">
                 <span>20秒</span>
@@ -576,7 +577,7 @@ const App: React.FC = () => {
               <Toggle
                 checked={settings.deepCheckOverlayEnabled ?? false}
                 onChange={handleDeepCheckOverlayToggle}
-                disabled={disabledAll}
+                disabled={disabledDeepCheckOptions}
               />
             </div>
           </div>

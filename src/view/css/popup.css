@@ -240,12 +240,15 @@ body {
 
 .slider-block input[type="range"] {
   accent-color: var(--color-accent);
-  min-width: 200px;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
 }
 
 .slider-scale {
   display: flex;
   justify-content: space-between;
+  width: 220px;
   font-size: 11px;
   color: var(--color-fg-subtle);
 }
