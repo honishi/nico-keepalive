@@ -682,7 +682,9 @@ function ensureMonitorDebugOverlay(): {
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
   headerStats: HTMLPreElement;
+  normalTitle: HTMLDivElement;
   normalStats: HTMLPreElement;
+  deepTitle: HTMLDivElement;
   deepStats: HTMLPreElement;
 } | null {
   if (!monitorDebugOverlayEnabled) return null;
@@ -698,12 +700,33 @@ function ensureMonitorDebugOverlay(): {
     const headerStats = existing.querySelector(
       "[data-role='header-stats']",
     ) as HTMLPreElement | null;
+    const normalTitle = existing.querySelector(
+      "[data-role='normal-title']",
+    ) as HTMLDivElement | null;
     const normalStats = existing.querySelector(
       "[data-role='normal-stats']",
     ) as HTMLPreElement | null;
+    const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
-    if (previousCanvas && currentCanvas && headerStats && normalStats && deepStats) {
-      return { root: existing, previousCanvas, currentCanvas, headerStats, normalStats, deepStats };
+    if (
+      previousCanvas &&
+      currentCanvas &&
+      headerStats &&
+      normalTitle &&
+      normalStats &&
+      deepTitle &&
+      deepStats
+    ) {
+      return {
+        root: existing,
+        previousCanvas,
+        currentCanvas,
+        headerStats,
+        normalTitle,
+        normalStats,
+        deepTitle,
+        deepStats,
+      };
     }
   }
 
@@ -734,6 +757,7 @@ function ensureMonitorDebugOverlay(): {
   headerStats.style.whiteSpace = "pre-wrap";
 
   const normalTitle = document.createElement("div");
+  normalTitle.dataset.role = "normal-title";
   normalTitle.textContent = "🔵 normal check";
   normalTitle.style.marginBottom = "4px";
   normalTitle.style.fontWeight = "700";
@@ -744,6 +768,7 @@ function ensureMonitorDebugOverlay(): {
   normalStats.style.whiteSpace = "pre-wrap";
 
   const deepTitle = document.createElement("div");
+  deepTitle.dataset.role = "deep-title";
   deepTitle.textContent = "🔵 deep check";
   deepTitle.style.marginBottom = "4px";
   deepTitle.style.fontWeight = "700";
@@ -796,7 +821,16 @@ function ensureMonitorDebugOverlay(): {
   root.appendChild(deepStats);
   document.body.appendChild(root);
 
-  return { root, previousCanvas, currentCanvas, headerStats, normalStats, deepStats };
+  return {
+    root,
+    previousCanvas,
+    currentCanvas,
+    headerStats,
+    normalTitle,
+    normalStats,
+    deepTitle,
+    deepStats,
+  };
 }
 
 function drawFrameThumbnail(
@@ -844,6 +878,10 @@ function updateMonitorDebugOverlay(
   const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
   const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
   const normalCheck = options?.normalCheck;
+  panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
+  panel.deepTitle.textContent = `🔵 deep check (enabled=${
+    deepCheckModeEnabled && debugDeepCheckEnabled
+  })`;
   panel.headerStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
     `warmup=${options?.inWarmup === true} remainingSec=${
@@ -859,7 +897,7 @@ function updateMonitorDebugOverlay(
     `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
       normalCheck?.thresholdSec ?? NO_TIME_CHANGE_THRESHOLD_MS / 1000
     } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? TIME_CHANGE_EPSILON_SEC.toFixed(2)}`,
-    `enabled=${normalCheck?.enabled ?? false} stalled=${normalCheck?.stalled ?? false}`,
+    `stalled=${normalCheck?.stalled ?? false}`,
   ].join("\n");
   panel.deepStats.textContent = [
     `frameDiff=${
@@ -877,9 +915,7 @@ function updateMonitorDebugOverlay(
     `visualIdleSec=${deepCheck ? visualIdleSec : "n/a"} audioIdleSec=${
       deepCheck ? audioIdleSec : "n/a"
     } thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
-    `enabled=${
-      deepCheckModeEnabled && debugDeepCheckEnabled
-    } available=${deepCheckAvailable} muted=${video.muted} volume=${video.volume.toFixed(
+    `available=${deepCheckAvailable} muted=${video.muted} volume=${video.volume.toFixed(
       2,
     )} stalled=${deepCheck?.stalled ?? false}`,
   ].join("\n");
