@@ -119,7 +119,7 @@ const App: React.FC = () => {
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
-  const disabledDeepCheckOptions = disabledAll || settings.deepCheckModeEnabled !== true;
+  const disabledDeepCheckThreshold = disabledAll || settings.deepCheckModeEnabled !== true;
 
   useEffect(() => {
     let isMounted = true;
@@ -241,9 +241,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeepCheckOverlayToggle = async (next: boolean) => {
+  const handleMonitorDebugOverlayToggle = async (next: boolean) => {
     const previous = settings;
-    const nextSettings = { ...settings, deepCheckOverlayEnabled: next };
+    const nextSettings = { ...settings, monitorDebugOverlayEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -559,7 +559,7 @@ const App: React.FC = () => {
                 step={10}
                 value={settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC}
                 onChange={(e) => handleDeepCheckThresholdChange(Number(e.target.value))}
-                disabled={disabledDeepCheckOptions}
+                disabled={disabledDeepCheckThreshold}
               />
               <div className="slider-scale">
                 <span>20秒</span>
@@ -572,11 +572,11 @@ const App: React.FC = () => {
               <span className="toggle-label">
                 デバッグ用オーバーレイを表示する
                 <br />
-                <span className="toggle-note">フレーム比較と判定状況をページ上に表示します</span>
+                <span className="toggle-note">監視の判定状況をページ上に表示します</span>
               </span>
               <Toggle
-                checked={settings.deepCheckOverlayEnabled ?? false}
-                onChange={handleDeepCheckOverlayToggle}
+                checked={settings.monitorDebugOverlayEnabled ?? false}
+                onChange={handleMonitorDebugOverlayToggle}
                 disabled={disabledAll}
               />
             </div>

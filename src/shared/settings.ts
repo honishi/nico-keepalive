@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: Settings = {
   customSound: null,
   deepCheckModeEnabled: false,
   deepCheckThresholdSec: DEEP_CHECK_THRESHOLD_DEFAULT_SEC,
-  deepCheckOverlayEnabled: false,
+  monitorDebugOverlayEnabled: false,
   debugWarmupEnabled: true,
   debugCurrentTimeCheckEnabled: true,
   debugDeepCheckEnabled: true,
@@ -23,14 +23,22 @@ export function clampDeepCheckThresholdSec(value: number): number {
 }
 
 export function normalizeSettings(settings?: Partial<Settings> | null): Settings {
+  const legacySettings = settings as
+    | (Partial<Settings> & { deepCheckOverlayEnabled?: boolean })
+    | null;
   const normalizedThresholdSec =
     typeof settings?.deepCheckThresholdSec === "number"
       ? clampDeepCheckThresholdSec(settings.deepCheckThresholdSec)
       : DEEP_CHECK_THRESHOLD_DEFAULT_SEC;
+  const normalizedMonitorDebugOverlayEnabled =
+    typeof settings?.monitorDebugOverlayEnabled === "boolean"
+      ? settings.monitorDebugOverlayEnabled
+      : legacySettings?.deepCheckOverlayEnabled === true;
 
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
     deepCheckThresholdSec: normalizedThresholdSec,
+    monitorDebugOverlayEnabled: normalizedMonitorDebugOverlayEnabled,
   };
 }

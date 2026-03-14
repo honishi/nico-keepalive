@@ -34,7 +34,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 let enabled = true;
 let deepCheckModeEnabled = false;
 let deepCheckThresholdMs = 2 * 60 * 1000;
-let deepCheckOverlayEnabled = false;
+let monitorDebugOverlayEnabled = false;
 let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
 let debugDeepCheckEnabled = true;
@@ -142,7 +142,7 @@ function applySettings(settings: Settings) {
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
   deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 120) * 1000;
-  deepCheckOverlayEnabled = normalized.deepCheckOverlayEnabled ?? false;
+  monitorDebugOverlayEnabled = normalized.monitorDebugOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
   debugDeepCheckEnabled = normalized.debugDeepCheckEnabled ?? true;
@@ -162,7 +162,7 @@ function applySettings(settings: Settings) {
     resetDeepCheckModeAvailability();
   }
 
-  if (!deepCheckOverlayEnabled) {
+  if (!monitorDebugOverlayEnabled) {
     hideMonitorDebugOverlay();
   }
 }
@@ -676,7 +676,7 @@ function hideMonitorDebugOverlay() {
 }
 
 function updateMonitorDebugOverlayVisibility() {
-  if (!deepCheckOverlayEnabled || !enabled) {
+  if (!monitorDebugOverlayEnabled || !enabled) {
     hideMonitorDebugOverlay();
   }
 }
@@ -687,7 +687,7 @@ function ensureMonitorDebugOverlay(): {
   currentCanvas: HTMLCanvasElement;
   stats: HTMLPreElement;
 } | null {
-  if (!deepCheckOverlayEnabled) return null;
+  if (!monitorDebugOverlayEnabled) return null;
 
   const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
@@ -869,7 +869,7 @@ function getCurrentSettings(): Settings {
     enabled,
     deepCheckModeEnabled,
     deepCheckThresholdSec: Math.round(deepCheckThresholdMs / 1000),
-    deepCheckOverlayEnabled,
+    monitorDebugOverlayEnabled,
     debugWarmupEnabled,
     debugCurrentTimeCheckEnabled,
     debugDeepCheckEnabled,

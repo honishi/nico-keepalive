@@ -35,7 +35,7 @@ export type Settings = {
   customSound?: CustomSound | null;
   deepCheckModeEnabled?: boolean;
   deepCheckThresholdSec?: number;
-  deepCheckOverlayEnabled?: boolean;
+  monitorDebugOverlayEnabled?: boolean;
   debugWarmupEnabled?: boolean;
   debugCurrentTimeCheckEnabled?: boolean;
   debugDeepCheckEnabled?: boolean;
