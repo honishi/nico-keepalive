@@ -13,6 +13,12 @@ import { normalizeSettings } from "../shared/settings";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, LogLevel, ProgramStateMap, Settings } from "../shared/types";
 import {
+  hideMonitorDebugOverlay,
+  type NormalCheckDebugSnapshot,
+  type DeepCheckOverlaySnapshot,
+  updateMonitorDebugOverlay,
+} from "../view/monitor-debug-overlay";
+import {
   getSettings,
   incrementReloadCount,
   pushLog,
@@ -28,7 +34,6 @@ const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
 const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
-const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
 const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
@@ -62,7 +67,6 @@ let deepCheckAudioTrackSignature: string | null = null;
 let deepCheckSourceVideo: HTMLVideoElement | null = null;
 let deepCheckAvailable = true;
 let deepCheckFallbackLogged = false;
-let monitorDebugOverlayMinimized = false;
 
 type DeepCheckSample = {
   visualEligible: boolean;
@@ -82,20 +86,6 @@ type DeepCheckEvaluation = {
     "visualEligible" | "frameChanged" | "frameAverageDiff" | "previousFrame" | "nextFrame"
   >;
   audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">;
-};
-
-type NormalCheckDebugSnapshot = {
-  currentTimeSec: number;
-  lastObservedCurrentTimeSec: number;
-  deltaSec: number;
-  timeMoved: boolean;
-  idleSec: number;
-  thresholdSec: number;
-  epsilonSec: number;
-  enabled: boolean;
-  stalled: boolean;
-  paused: boolean;
-  ended: boolean;
 };
 
 type AudioContextWithWebkit = Window &
@@ -258,11 +248,12 @@ function tick() {
             warmupRemainingMs: remainingMs,
           })
         : null;
-    updateMonitorDebugOverlay(video, nowMs, {
+    updateMonitorDebugOverlay({
+      enabled: monitorDebugOverlayEnabled,
       inWarmup: true,
       warmupRemainingMs: remainingMs,
       normalCheck,
-      deepCheck,
+      deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
     });
 
     // eslint-disable-next-line no-console
@@ -293,7 +284,8 @@ function tick() {
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
     resetDeepCheckMonitoringState();
-    updateMonitorDebugOverlay(video, nowMs, {
+    updateMonitorDebugOverlay({
+      enabled: monitorDebugOverlayEnabled,
       normalCheck: createNormalCheckDebugSnapshot({
         currentTimeSec,
         lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
@@ -304,7 +296,7 @@ function tick() {
         ended,
         stalled: false,
       }),
-      deepCheck: null,
+      deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, null),
     });
     return;
   }
@@ -348,7 +340,11 @@ function tick() {
     handleStall(nowMs, "deepCheck");
   }
 
-  updateMonitorDebugOverlay(video, nowMs, { normalCheck, deepCheck });
+  updateMonitorDebugOverlay({
+    enabled: monitorDebugOverlayEnabled,
+    normalCheck,
+    deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
+  });
 }
 
 function createNormalCheckDebugSnapshot(args: {
@@ -375,6 +371,35 @@ function createNormalCheckDebugSnapshot(args: {
     stalled: args.stalled,
     paused: args.paused,
     ended: args.ended,
+  };
+}
+
+function createDeepCheckOverlaySnapshot(
+  video: HTMLVideoElement,
+  nowMs: number,
+  deepCheck: DeepCheckEvaluation | null,
+): DeepCheckOverlaySnapshot | null {
+  return {
+    enabled: deepCheckModeEnabled && debugDeepCheckEnabled,
+    available: deepCheckAvailable,
+    stalled: deepCheck?.stalled ?? false,
+    visualEligible: deepCheck?.visual.visualEligible ?? false,
+    frameChanged: deepCheck?.visual.frameChanged ?? false,
+    frameAverageDiff: deepCheck?.visual.frameAverageDiff,
+    previousFrame: deepCheck?.visual.previousFrame,
+    nextFrame: deepCheck?.visual.nextFrame,
+    audioEligible: deepCheck?.audio.audioEligible ?? false,
+    audioSilent: deepCheck?.audio.audioSilent ?? false,
+    audioRms: deepCheck?.audio.audioRms,
+    visualIdleSec: deepCheck
+      ? Math.max(0, (nowMs - deepCheckState.lastVisualChangeAtMs) / 1000)
+      : undefined,
+    audioIdleSec: deepCheck
+      ? Math.max(0, (nowMs - deepCheckState.lastAudioActiveAtMs) / 1000)
+      : undefined,
+    thresholdSec: Math.round(deepCheckThresholdMs / 1000),
+    muted: video.muted,
+    volume: video.volume,
   };
 }
 
@@ -706,308 +731,6 @@ function logDeepCheckMetrics(
 
   // eslint-disable-next-line no-console
   console.log(`[nico-keepalive/content] ${contextPart}${providerPart}${message}`);
-}
-
-function hideMonitorDebugOverlay() {
-  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
-  if (existing && existing.parentElement) {
-    existing.parentElement.removeChild(existing);
-  }
-}
-
-function ensureMonitorDebugOverlay(): {
-  root: HTMLDivElement;
-  body: HTMLDivElement;
-  toggleButton: HTMLButtonElement;
-  previousCanvas: HTMLCanvasElement;
-  currentCanvas: HTMLCanvasElement;
-  headerStats: HTMLPreElement;
-  normalTitle: HTMLDivElement;
-  normalStats: HTMLPreElement;
-  deepTitle: HTMLDivElement;
-  deepStats: HTMLPreElement;
-} | null {
-  if (!monitorDebugOverlayEnabled) return null;
-
-  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
-  if (existing instanceof HTMLDivElement) {
-    const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
-    const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
-    const previousCanvas = existing.querySelector(
-      "[data-role='previous']",
-    ) as HTMLCanvasElement | null;
-    const currentCanvas = existing.querySelector(
-      "[data-role='current']",
-    ) as HTMLCanvasElement | null;
-    const headerStats = existing.querySelector(
-      "[data-role='header-stats']",
-    ) as HTMLPreElement | null;
-    const normalTitle = existing.querySelector(
-      "[data-role='normal-title']",
-    ) as HTMLDivElement | null;
-    const normalStats = existing.querySelector(
-      "[data-role='normal-stats']",
-    ) as HTMLPreElement | null;
-    const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
-    const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
-    if (
-      body &&
-      toggleButton &&
-      previousCanvas &&
-      currentCanvas &&
-      headerStats &&
-      normalTitle &&
-      normalStats &&
-      deepTitle &&
-      deepStats
-    ) {
-      return {
-        root: existing,
-        body,
-        toggleButton,
-        previousCanvas,
-        currentCanvas,
-        headerStats,
-        normalTitle,
-        normalStats,
-        deepTitle,
-        deepStats,
-      };
-    }
-  }
-
-  const root = document.createElement("div");
-  root.id = MONITOR_DEBUG_PANEL_ID;
-  root.style.position = "fixed";
-  root.style.left = "16px";
-  root.style.top = "16px";
-  root.style.zIndex = "999999";
-  root.style.padding = "10px";
-  root.style.background = "rgba(0, 0, 0, 0.85)";
-  root.style.color = "#fff";
-  root.style.borderRadius = "8px";
-  root.style.fontFamily = "ui-monospace, SFMono-Regular, monospace";
-  root.style.fontSize = "11px";
-  root.style.lineHeight = "1.4";
-  root.style.pointerEvents = "auto";
-  root.style.maxWidth = "360px";
-
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.alignItems = "center";
-  header.style.justifyContent = "space-between";
-  header.style.gap = "8px";
-  header.style.marginBottom = "8px";
-
-  const title = document.createElement("div");
-  title.textContent = "⚪️ nico-keepalive debug overlay";
-  title.style.fontWeight = "700";
-
-  const toggleButton = document.createElement("button");
-  toggleButton.dataset.role = "toggle";
-  toggleButton.type = "button";
-  toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
-  toggleButton.style.pointerEvents = "auto";
-  toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
-  toggleButton.style.background = "rgba(255,255,255,0.08)";
-  toggleButton.style.color = "#fff";
-  toggleButton.style.borderRadius = "4px";
-  toggleButton.style.font = "inherit";
-  toggleButton.style.lineHeight = "1";
-  toggleButton.style.padding = "2px 6px";
-  toggleButton.style.cursor = "pointer";
-  toggleButton.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    monitorDebugOverlayMinimized = !monitorDebugOverlayMinimized;
-    body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
-    toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
-  });
-
-  header.appendChild(title);
-  header.appendChild(toggleButton);
-
-  const body = document.createElement("div");
-  body.dataset.role = "body";
-  body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
-  body.style.pointerEvents = "none";
-
-  const headerStats = document.createElement("pre");
-  headerStats.dataset.role = "header-stats";
-  headerStats.style.margin = "0 0 10px";
-  headerStats.style.paddingLeft = "12px";
-  headerStats.style.whiteSpace = "pre-wrap";
-
-  const normalTitle = document.createElement("div");
-  normalTitle.dataset.role = "normal-title";
-  normalTitle.textContent = "🔵 normal check";
-  normalTitle.style.marginBottom = "4px";
-  normalTitle.style.fontWeight = "700";
-
-  const normalStats = document.createElement("pre");
-  normalStats.dataset.role = "normal-stats";
-  normalStats.style.margin = "0 0 10px";
-  normalStats.style.paddingLeft = "12px";
-  normalStats.style.whiteSpace = "pre-wrap";
-
-  const deepTitle = document.createElement("div");
-  deepTitle.dataset.role = "deep-title";
-  deepTitle.textContent = "🔵 deep check";
-  deepTitle.style.marginBottom = "4px";
-  deepTitle.style.fontWeight = "700";
-
-  const canvases = document.createElement("div");
-  canvases.style.display = "flex";
-  canvases.style.alignItems = "center";
-  canvases.style.gap = "8px";
-  canvases.style.marginBottom = "8px";
-  canvases.style.paddingLeft = "12px";
-
-  const previousCanvas = document.createElement("canvas");
-  previousCanvas.dataset.role = "previous";
-  previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
-  previousCanvas.height = DEEP_CHECK_FRAME_HEIGHT;
-  previousCanvas.style.width = "128px";
-  previousCanvas.style.height = "72px";
-  previousCanvas.style.background = "#111";
-  previousCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
-
-  const arrow = document.createElement("div");
-  arrow.textContent = "➔";
-  arrow.style.color = "rgba(255,255,255,0.7)";
-  arrow.style.fontSize = "16px";
-  arrow.style.lineHeight = "1";
-
-  const currentCanvas = document.createElement("canvas");
-  currentCanvas.dataset.role = "current";
-  currentCanvas.width = DEEP_CHECK_FRAME_WIDTH;
-  currentCanvas.height = DEEP_CHECK_FRAME_HEIGHT;
-  currentCanvas.style.width = "128px";
-  currentCanvas.style.height = "72px";
-  currentCanvas.style.background = "#111";
-  currentCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
-
-  canvases.appendChild(previousCanvas);
-  canvases.appendChild(arrow);
-  canvases.appendChild(currentCanvas);
-
-  const deepStats = document.createElement("pre");
-  deepStats.dataset.role = "deep-stats";
-  deepStats.style.margin = "0";
-  deepStats.style.paddingLeft = "12px";
-  deepStats.style.whiteSpace = "pre-wrap";
-
-  body.appendChild(headerStats);
-  body.appendChild(normalTitle);
-  body.appendChild(normalStats);
-  body.appendChild(deepTitle);
-  body.appendChild(canvases);
-  body.appendChild(deepStats);
-
-  root.appendChild(header);
-  root.appendChild(body);
-  document.body.appendChild(root);
-
-  return {
-    root,
-    body,
-    toggleButton,
-    previousCanvas,
-    currentCanvas,
-    headerStats,
-    normalTitle,
-    normalStats,
-    deepTitle,
-    deepStats,
-  };
-}
-
-function drawFrameThumbnail(
-  targetCanvas: HTMLCanvasElement,
-  frame: Uint8ClampedArray | null | undefined,
-) {
-  const context = targetCanvas.getContext("2d");
-  if (!context) return;
-
-  context.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-  if (!frame) {
-    context.fillStyle = "#111";
-    context.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
-    context.fillStyle = "#999";
-    context.font = "6px sans-serif";
-    context.fillText("n/a", 2, 8);
-    return;
-  }
-
-  const imageData = new ImageData(
-    new Uint8ClampedArray(frame),
-    DEEP_CHECK_FRAME_WIDTH,
-    DEEP_CHECK_FRAME_HEIGHT,
-  );
-  context.putImageData(imageData, 0, 0);
-}
-
-function updateMonitorDebugOverlay(
-  video: HTMLVideoElement,
-  nowMs: number,
-  options?: {
-    inWarmup?: boolean;
-    warmupRemainingMs?: number;
-    normalCheck?: NormalCheckDebugSnapshot;
-    deepCheck?: DeepCheckEvaluation | null;
-  },
-) {
-  const panel = ensureMonitorDebugOverlay();
-  if (!panel) return;
-  panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
-  panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
-
-  const deepCheck = options?.deepCheck;
-  drawFrameThumbnail(panel.previousCanvas, deepCheck?.visual.previousFrame);
-  drawFrameThumbnail(panel.currentCanvas, deepCheck?.visual.nextFrame);
-
-  const visualIdleSec = ((nowMs - deepCheckState.lastVisualChangeAtMs) / 1000).toFixed(1);
-  const audioIdleSec = ((nowMs - deepCheckState.lastAudioActiveAtMs) / 1000).toFixed(1);
-  const normalCheck = options?.normalCheck;
-  panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
-  panel.deepTitle.textContent = `🔵 deep check (enabled=${
-    deepCheckModeEnabled && debugDeepCheckEnabled
-  } available=${deepCheckAvailable})`;
-  panel.headerStats.textContent = [
-    `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
-    `warmup=${options?.inWarmup === true} remainingSec=${
-      typeof options?.warmupRemainingMs === "number"
-        ? Math.ceil(options.warmupRemainingMs / 1000)
-        : 0
-    }`,
-  ].join("\n");
-  panel.normalStats.textContent = [
-    `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
-      normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
-    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${normalCheck?.timeMoved ?? false}`,
-    `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
-      normalCheck?.thresholdSec ?? NO_TIME_CHANGE_THRESHOLD_MS / 1000
-    } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? TIME_CHANGE_EPSILON_SEC.toFixed(2)}`,
-    `stalled=${normalCheck?.stalled ?? false}`,
-  ].join("\n");
-  panel.deepStats.textContent = [
-    `frameDiff=${
-      typeof deepCheck?.visual.frameAverageDiff === "number"
-        ? deepCheck.visual.frameAverageDiff.toFixed(2)
-        : "n/a"
-    } changed=${deepCheck?.visual.frameChanged ?? false} eligible=${
-      deepCheck?.visual.visualEligible ?? false
-    }`,
-    `audioRms=${
-      typeof deepCheck?.audio.audioRms === "number" ? deepCheck.audio.audioRms.toFixed(2) : "n/a"
-    } silent=${deepCheck?.audio.audioSilent ?? false} eligible=${
-      deepCheck?.audio.audioEligible ?? false
-    }`,
-    `visualIdleSec=${deepCheck ? visualIdleSec : "n/a"} audioIdleSec=${
-      deepCheck ? audioIdleSec : "n/a"
-    } thresholdSec=${Math.round(deepCheckThresholdMs / 1000)}`,
-    `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${deepCheck?.stalled ?? false}`,
-  ].join("\n");
 }
 
 function clearCountdown() {
