@@ -190,9 +190,14 @@ function tick() {
     // スキップ期間中も基準は更新しておく（スキップ明けに誤検知しないため）
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
-    resetDeepCheckMonitoringState();
-
     const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
+
+    if (deepCheckModeEnabled) {
+      evaluateDeepCheck(video, nowMs, { inWarmup: true, warmupRemainingMs: remainingMs });
+    } else {
+      updateDeepCheckDebugSectionVisibility();
+    }
+
     // eslint-disable-next-line no-console
     console.log(
       `[nico-keepalive/content] warmup: モニターをスキップします (残り ${Math.ceil(
@@ -454,7 +459,11 @@ function sampleDeepCheckAudio(
   }
 }
 
-function evaluateDeepCheck(video: HTMLVideoElement, nowMs: number): boolean {
+function evaluateDeepCheck(
+  video: HTMLVideoElement,
+  nowMs: number,
+  options?: { inWarmup?: boolean; warmupRemainingMs?: number },
+): boolean {
   if (!deepCheckModeEnabled || !deepCheckAvailable) {
     return false;
   }
@@ -470,7 +479,7 @@ function evaluateDeepCheck(video: HTMLVideoElement, nowMs: number): boolean {
     deepCheckState,
     {
       nowMs,
-      inWarmup: false,
+      inWarmup: options?.inWarmup === true,
       paused: false,
       ended: false,
       visualEligible: visual.visualEligible,
@@ -483,8 +492,8 @@ function evaluateDeepCheck(video: HTMLVideoElement, nowMs: number): boolean {
 
   deepCheckState = result.state;
   logDeepCheckMetrics(video, visual, audio, result.stalled, nowMs);
-  updateDeepCheckDebugPanel(video, visual, audio, result.stalled, nowMs);
-  return result.stalled;
+  updateDeepCheckDebugPanel(video, visual, audio, result.stalled, nowMs, options);
+  return options?.inWarmup === true ? false : result.stalled;
 }
 
 function logDeepCheckMetrics(
@@ -659,6 +668,7 @@ function updateDeepCheckDebugPanel(
   audio: Pick<DeepCheckSample, "audioEligible" | "audioSilent" | "audioRms">,
   stalled: boolean,
   nowMs: number,
+  options?: { inWarmup?: boolean; warmupRemainingMs?: number },
 ) {
   const panel = ensureDeepCheckDebugPanel();
   if (!panel) return;
@@ -678,6 +688,11 @@ function updateDeepCheckDebugPanel(
     `visualIdleSec=${visualIdleSec} audioIdleSec=${audioIdleSec} thresholdSec=${Math.round(
       deepCheckThresholdMs / 1000,
     )}`,
+    `warmup=${options?.inWarmup === true} remainingSec=${
+      typeof options?.warmupRemainingMs === "number"
+        ? Math.ceil(options.warmupRemainingMs / 1000)
+        : 0
+    }`,
     `muted=${video.muted} volume=${video.volume.toFixed(2)} stalled=${stalled}`,
   ].join("\n");
 }
