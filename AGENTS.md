@@ -11,6 +11,8 @@
 
 ## 機能概要（content）
 - `video.currentTime` を 5 秒間隔で監視し、約 20 秒間変化しない場合を停止扱い（微小揺れはノイズとして無視）。
+- `v0.7.0` 以降は任意機能として「高度な停止チェック」を追加。映像フレーム比較 + 音声解析により、「映像変化なし かつ 無音」が一定時間続く場合も停止扱いにできる（デフォルト OFF）。
+- 高度な停止チェックの判定時間は popup から変更可能。範囲は 20 秒から 10 分、既定値は 3 分。既存の `currentTime` 判定は従来どおり約 20 秒固定。
 - 監視開始から 60 秒はウォームアップとして判定をスキップ（再生開始直後の誤検知を抑止）。
 - 停止判定後は 5 秒カウントダウン（トースト表示）し、`window.location.reload()` を実行。
 - 自動リロード回数を記録して popup の「動作状況」に表示。
@@ -19,6 +21,7 @@
 - 放送停止検出時に通知音を再生（デフォルト音 / カスタム音・音量を設定可能）。
 - 番組 ID（`lv...` / `ch...`）と放送者名を付けてログ保存（レベル付き）。
 - リロード前にフルスクリーン状態を保存し、リロード後に復元を試みる（最大 5 回リトライ）。
+- monitor debug overlay を popup から表示可能。通常判定 / 高度な停止判定 / warmup / paused / ended の状態をページ上に表示する。最小化ボタンあり。
 
 ## リロード挙動
 - 停止検知中は二重にカウントダウンしない（カウントダウン中の再トリガーを抑止）。
@@ -27,9 +30,10 @@
 
 ## ログ / 設定
 - 保存先: `chrome.storage.local`
-- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`）、`logs`（最新 1000 件）、`programStateMap`（フルスクリーン復元用）、`reloadCount`（`{ count, lastReloadAt? }`）
+- キー: `settings`（`enabled` 初期 ON、通知音: `soundEnabled` / `soundVolume` / `customSound`、高度な停止チェック: `deepCheckModeEnabled` / `deepCheckThresholdSec`、overlay: `monitorDebugOverlayEnabled`）、`logs`（最新 1000 件）、`programStateMap`（フルスクリーン復元用）、`reloadCount`（`{ count, lastReloadAt? }`）
 - `customSound` は `dataUrl` 保存（最大 1MB、ファイル名も保持）
 - popup で設定変更・表示・クリア可能（無効化時はバッジに `Zz` を表示）。動作状況のクリアで自動リロード回数をリセット。
+- deep check の定期メトリクスは console にのみ出力し、popup のアプリ内ログには保存しない。
 
 ## テスト / ビルド
 - テスト: `npm test`（Jest）。`test/program-meta.test.ts` あり。
