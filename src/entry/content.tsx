@@ -142,7 +142,7 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
-  deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 120) * 1000;
+  deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 180) * 1000;
   monitorDebugOverlayEnabled = normalized.monitorDebugOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
