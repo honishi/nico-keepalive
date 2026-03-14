@@ -87,6 +87,36 @@ body {
   gap: 12px;
 }
 
+.loading-screen {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-card {
+  width: 100%;
+  padding: 20px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  text-align: center;
+}
+
+.loading-title {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-fg-strong);
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
 /* 共通セクション */
 .section {
   padding: 8px 4px;

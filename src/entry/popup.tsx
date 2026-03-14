@@ -115,17 +115,28 @@ const App: React.FC = () => {
   const [statusMessageType, setStatusMessageType] = useState<"info" | "error">("info");
   const [customSoundMessage, setCustomSoundMessage] = useState<string>("");
   const [customSoundMessageType, setCustomSoundMessageType] = useState<"info" | "error">("info");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const disabledAll = !settings.enabled;
   const disabledSound = disabledAll || settings.soundEnabled === false;
 
   useEffect(() => {
-    getSettings().then(async (s) => {
-      setSettingsState(s);
-      await updateBadge(s.enabled);
-    });
-    getLogs().then(setLogs);
-    getReloadCount().then(setReloadCount);
+    let isMounted = true;
+
+    void (async () => {
+      const [nextSettings, nextLogs, nextReloadCount] = await Promise.all([
+        getSettings(),
+        getLogs(),
+        getReloadCount(),
+      ]);
+
+      if (!isMounted) return;
+      setSettingsState(nextSettings);
+      setLogs(nextLogs);
+      setReloadCount(nextReloadCount);
+      setIsLoading(false);
+      await updateBadge(nextSettings.enabled);
+    })();
 
     const listener: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (
       changes,
@@ -153,6 +164,7 @@ const App: React.FC = () => {
       chrome.storage.onChanged.addListener(listener);
     }
     return () => {
+      isMounted = false;
       if (chrome?.storage?.onChanged) {
         chrome.storage.onChanged.removeListener(listener);
       }
@@ -415,6 +427,17 @@ const App: React.FC = () => {
       console.error("Failed to play test sound", err);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div id="app" className="loading-screen" aria-busy="true">
+        <div className="loading-card">
+          <p className="loading-title">読み込み中</p>
+          <p className="loading-text">設定と動作状況を取得しています。</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="app">
