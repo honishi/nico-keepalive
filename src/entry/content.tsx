@@ -800,7 +800,7 @@ function ensureMonitorDebugOverlay(): {
   header.style.marginBottom = "8px";
 
   const title = document.createElement("div");
-  title.textContent = "⚪️ nico-keepalive debug overlay";
+  title.textContent = "🔵 nico-keepalive debug overlay";
   title.style.fontWeight = "700";
 
   const toggleButton = document.createElement("button");
