@@ -16,6 +16,7 @@ import {
   playNotificationSound,
   clampVolume,
 } from "../shared/sound";
+import { DEFAULT_SETTINGS } from "../shared/settings";
 import { LOG_MAX, LogEntry, Settings } from "../shared/types";
 
 async function updateBadge(enabled: boolean) {
@@ -91,15 +92,8 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   );
 };
 
-const defaultSettings: Settings = {
-  enabled: true,
-  soundEnabled: true,
-  soundVolume: SOUND_VOLUME_MAX,
-  customSound: null,
-};
-
 const App: React.FC = () => {
-  const [settings, setSettingsState] = useState<Settings>(defaultSettings);
+  const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [reloadCount, setReloadCount] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -112,9 +106,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     getSettings().then(async (s) => {
-      const merged = { ...defaultSettings, ...s };
-      setSettingsState(merged);
-      await updateBadge(merged.enabled);
+      setSettingsState(s);
+      await updateBadge(s.enabled);
     });
     getLogs().then(setLogs);
     getReloadCount().then(setReloadCount);
@@ -191,6 +184,22 @@ const App: React.FC = () => {
   const handleSoundToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, soundEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
+  const handleDeepCheckModeToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, deepCheckModeEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -319,6 +328,21 @@ const App: React.FC = () => {
           <div className="toggle-row">
             <span className="toggle-label">放送停止を検出し自動リロードする</span>
             <Toggle checked={settings.enabled} onChange={handleToggle} />
+          </div>
+
+          <div className="sound-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                deep check mode を有効にする
+                <br />
+                <span className="toggle-note">映像変化なし + 無音も停止判定に使います</span>
+              </span>
+              <Toggle
+                checked={settings.deepCheckModeEnabled ?? false}
+                onChange={handleDeepCheckModeToggle}
+                disabled={disabledAll}
+              />
+            </div>
           </div>
 
           <div className="sound-section">

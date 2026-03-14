@@ -115,6 +115,11 @@ body {
   line-height: 1.4;
 }
 
+.toggle-note {
+  font-size: 11px;
+  color: var(--color-fg-subtle);
+}
+
 .toggle {
   position: relative;
   width: 44px;

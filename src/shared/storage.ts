@@ -1,11 +1,5 @@
+import { DEFAULT_SETTINGS, normalizeSettings } from "./settings";
 import { LOG_MAX, LogEntry, ProgramStateMap, ReloadStats, Settings, STORAGE_KEYS } from "./types";
-
-const defaultSettings: Settings = {
-  enabled: true,
-  soundEnabled: true,
-  soundVolume: 100,
-  customSound: null,
-};
 
 const safeStorage: chrome.storage.StorageArea | null =
   typeof chrome !== "undefined" && chrome.storage?.local ? chrome.storage.local : null;
@@ -27,17 +21,17 @@ async function withStorageLock<T>(name: string, fn: () => Promise<T>): Promise<T
 }
 
 export async function getSettings(): Promise<Settings> {
-  if (!safeStorage) return defaultSettings;
+  if (!safeStorage) return DEFAULT_SETTINGS;
   return new Promise((resolve) => {
     safeStorage.get(STORAGE_KEYS.settings, (items) => {
       const err = chrome.runtime.lastError;
       if (err) {
         console.warn("[nico-keepalive/storage] Failed to get settings", err);
-        resolve(defaultSettings);
+        resolve(DEFAULT_SETTINGS);
         return;
       }
       const stored = items[STORAGE_KEYS.settings] as Settings | undefined;
-      resolve({ ...defaultSettings, ...stored });
+      resolve(normalizeSettings(stored));
     });
   });
 }
