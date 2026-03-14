@@ -382,21 +382,6 @@ const App: React.FC = () => {
 
           <div className="sound-section">
             <div className="toggle-row">
-              <span className="toggle-label">
-                deep check mode を有効にする
-                <br />
-                <span className="toggle-note">映像変化なし + 無音も停止判定に使います</span>
-              </span>
-              <Toggle
-                checked={settings.deepCheckModeEnabled ?? false}
-                onChange={handleDeepCheckModeToggle}
-                disabled={disabledAll}
-              />
-            </div>
-          </div>
-
-          <div className="sound-section">
-            <div className="toggle-row">
               <span className="toggle-label">放送停止検出時に音を鳴らす</span>
               <Toggle
                 checked={settings.soundEnabled ?? true}
@@ -464,6 +449,28 @@ const App: React.FC = () => {
                   {customSoundMessage}
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <p className="heading">実験機能</p>
+        <div className="section-body">
+          <div className="sound-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                高度な停止チェックを有効にする
+                <br />
+                <span className="toggle-note">
+                  映像の変化がなく、音も出ていない状態を停止判定に使います
+                </span>
+              </span>
+              <Toggle
+                checked={settings.deepCheckModeEnabled ?? false}
+                onChange={handleDeepCheckModeToggle}
+                disabled={disabledAll}
+              />
             </div>
           </div>
         </div>
