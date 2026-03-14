@@ -231,6 +231,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDebugWarmupToggle = async (next: boolean) => {
+    const previous = settings;
+    const nextSettings = { ...settings, debugWarmupEnabled: next };
+    setSettingsState(nextSettings);
+    try {
+      await setSettings(nextSettings);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+      setSettingsState(previous);
+      showStatusMessage(
+        "設定の保存に失敗しました（ストレージ容量の上限に達した可能性があります）。",
+        "error",
+      );
+    }
+  };
+
   const handleDebugDeepCheckToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, debugDeepCheckEnabled: next };
@@ -457,6 +473,21 @@ const App: React.FC = () => {
         <section className="section">
           <p className="heading">デバッグ</p>
           <div className="section-body debug-section">
+            <div className="toggle-row">
+              <span className="toggle-label">
+                warmup を有効にする
+                <br />
+                <span className="toggle-note">
+                  OFF にすると開始直後の 60 秒待ちをスキップします
+                </span>
+              </span>
+              <Toggle
+                checked={settings.debugWarmupEnabled ?? true}
+                onChange={handleDebugWarmupToggle}
+                disabled={disabledAll}
+              />
+            </div>
+
             <div className="toggle-row">
               <span className="toggle-label">
                 通常判定を有効にする

@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: Settings = {
   soundVolume: 100,
   customSound: null,
   deepCheckModeEnabled: false,
+  debugWarmupEnabled: true,
   debugCurrentTimeCheckEnabled: true,
   debugDeepCheckEnabled: true,
 };

@@ -10,6 +10,7 @@ describe("settings defaults", () => {
   });
 
   it("keeps debug checks enabled by default", () => {
+    expect(DEFAULT_SETTINGS.debugWarmupEnabled).toBe(true);
     expect(DEFAULT_SETTINGS.debugCurrentTimeCheckEnabled).toBe(true);
     expect(DEFAULT_SETTINGS.debugDeepCheckEnabled).toBe(true);
   });

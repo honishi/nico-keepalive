@@ -33,6 +33,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let deepCheckModeEnabled = false;
+let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
 let debugDeepCheckEnabled = true;
 let soundEnabled = true;
@@ -109,6 +110,7 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
+  debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
   debugDeepCheckEnabled = normalized.debugDeepCheckEnabled ?? true;
   soundEnabled = normalized.soundEnabled ?? true;
@@ -176,7 +178,7 @@ function tick() {
   if (firstTickAtMs === undefined) {
     firstTickAtMs = nowMs;
   }
-  if (nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
+  if (debugWarmupEnabled && nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
     // スキップ期間中も基準は更新しておく（スキップ明けに誤検知しないため）
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
@@ -552,7 +554,7 @@ function ensureDeepCheckDebugPanel(): {
   root.id = DEEP_CHECK_DEBUG_PANEL_ID;
   root.style.position = "fixed";
   root.style.right = "16px";
-  root.style.bottom = "16px";
+  root.style.top = "16px";
   root.style.zIndex = "999999";
   root.style.padding = "10px";
   root.style.background = "rgba(0, 0, 0, 0.85)";
