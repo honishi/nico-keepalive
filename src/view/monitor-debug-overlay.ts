@@ -95,8 +95,12 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
   })`;
   panel.collapsedSummary.textContent = [
     `プレイヤー: ${formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")}`,
-    `映像: ${formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")}`,
-    `音: ${formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")}`,
+    `映像: ${
+      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement") : "-"
+    }`,
+    `音: ${
+      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent") : "-"
+    }`,
     `停止判定: ${formatOverlayStatusIcon(collapsedStopStalled, "stalled")}`,
   ].join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
