@@ -1,8 +1,8 @@
 import { Settings } from "./types";
 
 export const DEEP_CHECK_THRESHOLD_MIN_SEC = 20;
-export const DEEP_CHECK_THRESHOLD_MAX_SEC = 10 * 60;
-export const DEEP_CHECK_THRESHOLD_DEFAULT_SEC = 3 * 60;
+export const DEEP_CHECK_THRESHOLD_MAX_SEC = 5 * 60;
+export const DEEP_CHECK_THRESHOLD_DEFAULT_SEC = 1 * 60;
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,

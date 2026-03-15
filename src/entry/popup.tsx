@@ -99,12 +99,11 @@ const LogList: React.FC<{ logs: LogEntry[] }> = ({ logs }) => {
   );
 };
 
-function formatDurationLabel(seconds: number): string {
+export function formatDurationLabel(seconds: number): string {
   if (seconds < 60) return `${seconds}秒`;
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (remainingSeconds === 0) return `${minutes}分`;
-  return `${minutes}分${remainingSeconds}秒`;
+  return `${minutes}分${remainingSeconds.toString().padStart(2, "0")}秒`;
 }
 
 const App: React.FC = () => {
@@ -545,7 +544,7 @@ const App: React.FC = () => {
 
             <div className="slider-block">
               <div className="slider-header">
-                <span className="slider-label">高度な停止チェックの判定時間</span>
+                <span className="slider-label">高度な停止判定までの時間</span>
                 <span className="slider-value">
                   {formatDurationLabel(
                     settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC,
@@ -563,8 +562,7 @@ const App: React.FC = () => {
               />
               <div className="slider-scale">
                 <span>20秒</span>
-                <span>3分</span>
-                <span>10分</span>
+                <span>5分</span>
               </div>
             </div>
 
