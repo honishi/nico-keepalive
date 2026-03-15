@@ -148,7 +148,7 @@ function formatOverlayBoolean(
 ): string {
   switch (kind) {
     case "warmup":
-      return value ? `😴${label}=true` : `👀${label}=false`;
+      return value ? `💤${label}=true` : `👀${label}=false`;
     case "movement":
       return value ? `✅${label}=true` : `‼️${label}=false`;
     case "silent":
