@@ -261,7 +261,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 
   const title = document.createElement("div");
   title.dataset.role = "title";
-  title.textContent = "🔵 nico-keepalive debug view";
+  title.textContent = "🔵 nico-keepalive monitor status";
   title.style.fontWeight = "700";
 
   const toggleButton = document.createElement("button");
@@ -400,7 +400,7 @@ function applyMinimizedState(panel: MonitorDebugOverlayElements) {
   panel.header.style.marginBottom = monitorDebugOverlayMinimized
     ? `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`
     : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.title.textContent = "🔵 nico-keepalive debug view";
+  panel.title.textContent = "🔵 nico-keepalive monitor status";
   panel.collapsedSummary.style.display = monitorDebugOverlayMinimized ? "block" : "none";
   panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
