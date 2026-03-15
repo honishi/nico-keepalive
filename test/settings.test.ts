@@ -9,6 +9,7 @@ import {
 describe("settings defaults", () => {
   it("keeps deep check mode disabled by default", () => {
     expect(DEFAULT_SETTINGS.deepCheckModeEnabled).toBe(false);
+    expect(DEFAULT_SETTINGS.deepCheckThresholdSec).toBe(120);
   });
 
   it("fills deep check mode when old settings are loaded", () => {

@@ -9,7 +9,7 @@ import {
   reduceDeepCheckState,
 } from "../shared/deep-check";
 import { playNotificationSound } from "../shared/sound";
-import { normalizeSettings } from "../shared/settings";
+import { DEEP_CHECK_THRESHOLD_DEFAULT_SEC, normalizeSettings } from "../shared/settings";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, LogLevel, ProgramStateMap, Settings } from "../shared/types";
 import {
@@ -148,7 +148,8 @@ function applySettings(settings: Settings) {
 
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
-  deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 180) * 1000;
+  deepCheckThresholdMs =
+    (normalized.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_DEFAULT_SEC) * 1000;
   monitorOverlayEnabled = normalized.monitorOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
