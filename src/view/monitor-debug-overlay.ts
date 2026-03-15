@@ -1,6 +1,8 @@
 import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../shared/deep-check";
 
 const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
+const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;
+const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 
 let monitorDebugOverlayMinimized = false;
 
@@ -89,7 +91,8 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
-  panel.deepTitle.style.marginBottom = deepCheckEnabled ? "4px" : "0";
+  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
   panel.deepStats.style.display = "block";
   panel.headerStats.textContent = [
@@ -295,30 +298,30 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   header.appendChild(toggleButton);
 
   panel.headerStats.dataset.role = "header-stats";
-  panel.headerStats.style.margin = "0 0 10px";
+  panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
   panel.headerStats.style.paddingLeft = "12px";
   panel.headerStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
   panel.normalTitle.textContent = "🔵 normal check";
-  panel.normalTitle.style.marginBottom = "4px";
+  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.normalTitle.style.fontWeight = "700";
 
   panel.normalStats.dataset.role = "normal-stats";
-  panel.normalStats.style.margin = "0 0 10px";
+  panel.normalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
   panel.normalStats.style.paddingLeft = "12px";
   panel.normalStats.style.whiteSpace = "pre-wrap";
 
   panel.deepTitle.dataset.role = "deep-title";
   panel.deepTitle.textContent = "🔵 deep check";
-  panel.deepTitle.style.marginBottom = "4px";
+  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.fontWeight = "700";
 
   panel.deepCanvases.dataset.role = "deep-canvases";
   panel.deepCanvases.style.display = "flex";
   panel.deepCanvases.style.alignItems = "center";
   panel.deepCanvases.style.gap = "8px";
-  panel.deepCanvases.style.marginBottom = "8px";
+  panel.deepCanvases.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.paddingLeft = "12px";
 
   panel.previousCanvas.dataset.role = "previous";
@@ -369,7 +372,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorDebugOverlayElements) {
   panel.root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = monitorDebugOverlayMinimized ? "0" : "8px";
+  panel.header.style.marginBottom = monitorDebugOverlayMinimized
+    ? "0"
+    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.title.textContent = monitorDebugOverlayMinimized
     ? "🔵 nico-keepalive"
     : "🔵 nico-keepalive debug overlay";
