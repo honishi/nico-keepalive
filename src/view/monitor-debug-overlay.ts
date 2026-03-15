@@ -51,6 +51,7 @@ type MonitorDebugOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
   title: HTMLDivElement;
+  collapsedSummary: HTMLDivElement;
   body: HTMLDivElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
@@ -87,10 +88,17 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
 
   const normalCheck = args.normalCheck;
   const deepCheckEnabled = deepCheck?.enabled ?? false;
+  const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
+  panel.collapsedSummary.textContent = [
+    `プレイヤー: ${formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")}`,
+    `映像: ${formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")}`,
+    `音: ${formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")}`,
+    `停止判定: ${formatOverlayStatusIcon(collapsedStopStalled, "stalled")}`,
+  ].join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
@@ -163,6 +171,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   if (existing instanceof HTMLDivElement) {
     const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
     const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
+    const collapsedSummary = existing.querySelector(
+      "[data-role='collapsed-summary']",
+    ) as HTMLDivElement | null;
     const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
     const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
     const previousCanvas = existing.querySelector(
@@ -188,6 +199,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
     if (
       header &&
       title &&
+      collapsedSummary &&
       body &&
       toggleButton &&
       previousCanvas &&
@@ -203,6 +215,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
         root: existing,
         header,
         title,
+        collapsedSummary,
         body,
         toggleButton,
         previousCanvas,
@@ -275,6 +288,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
     root,
     header,
     title,
+    collapsedSummary: document.createElement("div"),
     body,
     toggleButton,
     previousCanvas: document.createElement("canvas"),
@@ -296,6 +310,11 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 
   header.appendChild(title);
   header.appendChild(toggleButton);
+
+  panel.collapsedSummary.dataset.role = "collapsed-summary";
+  panel.collapsedSummary.style.display = "none";
+  panel.collapsedSummary.style.whiteSpace = "pre-wrap";
+  panel.collapsedSummary.style.paddingLeft = "12px";
 
   panel.headerStats.dataset.role = "header-stats";
   panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
@@ -363,6 +382,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
+  root.appendChild(panel.collapsedSummary);
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
@@ -373,11 +393,10 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 function applyMinimizedState(panel: MonitorDebugOverlayElements) {
   panel.root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
   panel.header.style.marginBottom = monitorDebugOverlayMinimized
-    ? "0"
+    ? `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`
     : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.title.textContent = monitorDebugOverlayMinimized
-    ? "🔵 nico-keepalive"
-    : "🔵 nico-keepalive debug view";
+  panel.title.textContent = "🔵 nico-keepalive debug view";
+  panel.collapsedSummary.style.display = monitorDebugOverlayMinimized ? "block" : "none";
   panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
 }
@@ -405,4 +424,15 @@ function drawFrameThumbnail(
     DEEP_CHECK_FRAME_HEIGHT,
   );
   context.putImageData(imageData, 0, 0);
+}
+
+function formatOverlayStatusIcon(value: boolean, kind: "movement" | "silent" | "stalled"): string {
+  switch (kind) {
+    case "movement":
+      return value ? "✅" : "‼️";
+    case "silent":
+      return value ? "‼️" : "✅";
+    case "stalled":
+      return value ? "‼️" : "✅";
+  }
 }
