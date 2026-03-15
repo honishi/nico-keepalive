@@ -163,11 +163,11 @@ function formatOverlayBoolean(
     case "warmup":
       return value ? `💤${label}=true` : `👀${label}=false`;
     case "movement":
-      return value ? `✅${label}=true` : `‼️${label}=false`;
+      return value ? `✅${label}=true` : `⚠️${label}=false`;
     case "silent":
-      return value ? `‼️${label}=true` : `✅${label}=false`;
+      return value ? `⚠️${label}=true` : `✅${label}=false`;
     case "stalled":
-      return value ? `‼️${label}=true` : `✅${label}=false`;
+      return value ? `🛑${label}=true` : `✅${label}=false`;
   }
 }
 
@@ -434,10 +434,10 @@ function drawFrameThumbnail(
 function formatOverlayStatusIcon(value: boolean, kind: "movement" | "silent" | "stalled"): string {
   switch (kind) {
     case "movement":
-      return value ? "✅" : "‼️";
+      return value ? "✅" : "⚠️";
     case "silent":
-      return value ? "‼️" : "✅";
+      return value ? "⚠️" : "✅";
     case "stalled":
-      return value ? "‼️" : "✅";
+      return value ? "🛑" : "✅";
   }
 }
