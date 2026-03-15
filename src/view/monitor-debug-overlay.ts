@@ -4,7 +4,7 @@ const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
 const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;
 const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 
-let monitorDebugOverlayMinimized = false;
+let monitorDebugOverlayMinimized = true;
 
 export type NormalCheckDebugSnapshot = {
   currentTimeSec: number;
@@ -65,6 +65,7 @@ type MonitorDebugOverlayElements = {
 };
 
 export function hideMonitorDebugOverlay() {
+  monitorDebugOverlayMinimized = true;
   const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
