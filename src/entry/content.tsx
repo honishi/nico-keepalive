@@ -13,11 +13,11 @@ import { normalizeSettings } from "../shared/settings";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { CustomSound, LogLevel, ProgramStateMap, Settings } from "../shared/types";
 import {
-  hideMonitorDebugOverlay,
-  type NormalCheckDebugSnapshot,
+  hideMonitorOverlay,
+  type NormalCheckSnapshot,
   type DeepCheckOverlaySnapshot,
-  updateMonitorDebugOverlay,
-} from "../view/monitor-debug-overlay";
+  updateMonitorOverlay,
+} from "../view/monitor-overlay";
 import {
   getSettings,
   incrementReloadCount,
@@ -160,7 +160,7 @@ function applySettings(settings: Settings) {
   if (wasDeepCheckEnabled && !deepCheckModeEnabled) {
     cleanupDeepCheckResources();
     resetDeepCheckMonitoringState();
-    hideMonitorDebugOverlay();
+    hideMonitorOverlay();
     return;
   }
 
@@ -170,7 +170,7 @@ function applySettings(settings: Settings) {
   }
 
   if (!monitorOverlayEnabled) {
-    hideMonitorDebugOverlay();
+    hideMonitorOverlay();
   }
 }
 
@@ -190,7 +190,7 @@ function stopMonitor() {
   }
   cleanupDeepCheckResources();
   resetDeepCheckMonitoringState();
-  hideMonitorDebugOverlay();
+  hideMonitorOverlay();
   clearCountdown();
   hideToast();
   logInfo("モニターを停止しました");
@@ -225,7 +225,7 @@ function tick() {
     firstTickAtMs = nowMs;
   }
   if (debugWarmupEnabled && nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
-    const normalCheck = createNormalCheckDebugSnapshot({
+    const normalCheck = createNormalCheckSnapshot({
       currentTimeSec,
       lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
       nowMs,
@@ -248,7 +248,7 @@ function tick() {
             warmupRemainingMs: remainingMs,
           })
         : null;
-    updateMonitorDebugOverlay({
+    updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
       inWarmup: true,
       warmupRemainingMs: remainingMs,
@@ -284,9 +284,9 @@ function tick() {
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
     resetDeepCheckMonitoringState();
-    updateMonitorDebugOverlay({
+    updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
-      normalCheck: createNormalCheckDebugSnapshot({
+      normalCheck: createNormalCheckSnapshot({
         currentTimeSec,
         lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
         nowMs,
@@ -317,7 +317,7 @@ function tick() {
     debugCurrentTimeCheckEnabled &&
     !hasTimeMoved &&
     nowMs - lastTimeChangeAtMs >= NO_TIME_CHANGE_THRESHOLD_MS;
-  const normalCheck = createNormalCheckDebugSnapshot({
+  const normalCheck = createNormalCheckSnapshot({
     currentTimeSec,
     lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
     nowMs,
@@ -340,14 +340,14 @@ function tick() {
     handleStall(nowMs, "deepCheck");
   }
 
-  updateMonitorDebugOverlay({
+  updateMonitorOverlay({
     enabled: monitorOverlayEnabled,
     normalCheck,
     deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
   });
 }
 
-function createNormalCheckDebugSnapshot(args: {
+function createNormalCheckSnapshot(args: {
   currentTimeSec: number;
   lastObservedCurrentTimeSec: number;
   nowMs: number;
@@ -356,7 +356,7 @@ function createNormalCheckDebugSnapshot(args: {
   paused: boolean;
   ended: boolean;
   stalled: boolean;
-}): NormalCheckDebugSnapshot {
+}): NormalCheckSnapshot {
   const deltaSec = args.currentTimeSec - args.lastObservedCurrentTimeSec;
 
   return {

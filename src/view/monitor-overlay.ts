@@ -1,12 +1,12 @@
 import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../shared/deep-check";
 
-const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
+const MONITOR_OVERLAY_PANEL_ID = "nico-keepalive-monitor";
 const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;
 const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 
-let monitorDebugOverlayMinimized = true;
+let monitorOverlayMinimized = true;
 
-export type NormalCheckDebugSnapshot = {
+export type NormalCheckSnapshot = {
   currentTimeSec: number;
   lastObservedCurrentTimeSec: number;
   deltaSec: number;
@@ -39,15 +39,15 @@ export type DeepCheckOverlaySnapshot = {
   volume: number;
 };
 
-export type MonitorDebugOverlayUpdateArgs = {
+export type MonitorOverlayUpdateArgs = {
   enabled: boolean;
   inWarmup?: boolean;
   warmupRemainingMs?: number;
-  normalCheck?: NormalCheckDebugSnapshot;
+  normalCheck?: NormalCheckSnapshot;
   deepCheck?: DeepCheckOverlaySnapshot | null;
 };
 
-type MonitorDebugOverlayElements = {
+type MonitorOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
   title: HTMLDivElement;
@@ -64,21 +64,21 @@ type MonitorDebugOverlayElements = {
   deepStats: HTMLPreElement;
 };
 
-export function hideMonitorDebugOverlay() {
-  monitorDebugOverlayMinimized = true;
-  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
+export function hideMonitorOverlay() {
+  monitorOverlayMinimized = true;
+  const existing = document.getElementById(MONITOR_OVERLAY_PANEL_ID);
   if (existing && existing.parentElement) {
     existing.parentElement.removeChild(existing);
   }
 }
 
-export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
+export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   if (!args.enabled) {
-    hideMonitorDebugOverlay();
+    hideMonitorOverlay();
     return;
   }
 
-  const panel = ensureMonitorDebugOverlay();
+  const panel = ensureMonitorOverlay();
   if (!panel) return;
 
   applyMinimizedState(panel);
@@ -171,8 +171,8 @@ function formatOverlayBoolean(
   }
 }
 
-function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
-  const existing = document.getElementById(MONITOR_DEBUG_PANEL_ID);
+function ensureMonitorOverlay(): MonitorOverlayElements | null {
+  const existing = document.getElementById(MONITOR_OVERLAY_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
     const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
     const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
@@ -236,7 +236,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   }
 
   const root = document.createElement("div");
-  root.id = MONITOR_DEBUG_PANEL_ID;
+  root.id = MONITOR_OVERLAY_PANEL_ID;
   root.style.position = "fixed";
   root.style.left = "16px";
   root.style.top = "16px";
@@ -267,7 +267,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   const toggleButton = document.createElement("button");
   toggleButton.dataset.role = "toggle";
   toggleButton.type = "button";
-  toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+  toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
   toggleButton.style.pointerEvents = "auto";
   toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
   toggleButton.style.background = "rgba(255,255,255,0.08)";
@@ -280,13 +280,13 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   toggleButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    monitorDebugOverlayMinimized = !monitorDebugOverlayMinimized;
+    monitorOverlayMinimized = !monitorOverlayMinimized;
     applyMinimizedState(panel);
   });
 
   const body = document.createElement("div");
   body.dataset.role = "body";
-  body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
+  body.style.display = monitorOverlayMinimized ? "none" : "block";
   body.style.pointerEvents = "none";
 
   const panel = {
@@ -307,9 +307,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   };
 
   header.addEventListener("click", (event) => {
-    if (!monitorDebugOverlayMinimized) return;
+    if (!monitorOverlayMinimized) return;
     event.preventDefault();
-    monitorDebugOverlayMinimized = false;
+    monitorOverlayMinimized = false;
     applyMinimizedState(panel);
   });
 
@@ -395,15 +395,15 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   return panel;
 }
 
-function applyMinimizedState(panel: MonitorDebugOverlayElements) {
-  panel.root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = monitorDebugOverlayMinimized
+function applyMinimizedState(panel: MonitorOverlayElements) {
+  panel.root.style.padding = monitorOverlayMinimized ? "6px 8px" : "10px";
+  panel.header.style.marginBottom = monitorOverlayMinimized
     ? `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`
     : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.title.textContent = "🔵 nico-keepalive monitor status";
-  panel.collapsedSummary.style.display = monitorDebugOverlayMinimized ? "block" : "none";
-  panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
-  panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
+  panel.collapsedSummary.style.display = monitorOverlayMinimized ? "block" : "none";
+  panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
+  panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
 }
 
 function drawFrameThumbnail(

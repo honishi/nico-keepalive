@@ -241,7 +241,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMonitorDebugOverlayToggle = async (next: boolean) => {
+  const handleMonitorOverlayToggle = async (next: boolean) => {
     const previous = settings;
     const nextSettings = { ...settings, monitorOverlayEnabled: next };
     setSettingsState(nextSettings);
@@ -576,7 +576,7 @@ const App: React.FC = () => {
               </span>
               <Toggle
                 checked={settings.monitorOverlayEnabled ?? false}
-                onChange={handleMonitorDebugOverlayToggle}
+                onChange={handleMonitorOverlayToggle}
                 disabled={disabledAll}
               />
             </div>
