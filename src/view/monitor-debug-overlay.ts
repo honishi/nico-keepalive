@@ -57,6 +57,7 @@ type MonitorDebugOverlayElements = {
   normalTitle: HTMLDivElement;
   normalStats: HTMLPreElement;
   deepTitle: HTMLDivElement;
+  deepCanvases: HTMLDivElement;
   deepStats: HTMLPreElement;
 };
 
@@ -83,10 +84,14 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
   drawFrameThumbnail(panel.currentCanvas, deepCheck?.nextFrame);
 
   const normalCheck = args.normalCheck;
+  const deepCheckEnabled = deepCheck?.enabled ?? false;
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
-  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheck?.enabled ?? false} available=${
+  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
+  panel.deepTitle.style.marginBottom = deepCheckEnabled ? "4px" : "0";
+  panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
+  panel.deepStats.style.display = "block";
   panel.headerStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
     `${formatOverlayBoolean("warmup", args.inWarmup === true, "warmup")} remainingSec=${
@@ -128,6 +133,9 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
       typeof deepCheck?.volume === "number" ? deepCheck.volume.toFixed(2) : "n/a"
     } ${formatOverlayBoolean("stalled", deepCheck?.stalled ?? false, "stalled")}`,
   ].join("\n");
+  if (!deepCheckEnabled) {
+    panel.deepStats.textContent = "check disabled";
+  }
 }
 
 function formatOverlayBoolean(
@@ -170,6 +178,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
       "[data-role='normal-stats']",
     ) as HTMLPreElement | null;
     const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
+    const deepCanvases = existing.querySelector(
+      "[data-role='deep-canvases']",
+    ) as HTMLDivElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
       header &&
@@ -182,6 +193,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
       normalTitle &&
       normalStats &&
       deepTitle &&
+      deepCanvases &&
       deepStats
     ) {
       return {
@@ -196,6 +208,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
         normalTitle,
         normalStats,
         deepTitle,
+        deepCanvases,
         deepStats,
       };
     }
@@ -267,6 +280,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
     normalTitle: document.createElement("div"),
     normalStats: document.createElement("pre"),
     deepTitle: document.createElement("div"),
+    deepCanvases: document.createElement("div"),
     deepStats: document.createElement("pre"),
   };
 
@@ -300,12 +314,12 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   panel.deepTitle.style.marginBottom = "4px";
   panel.deepTitle.style.fontWeight = "700";
 
-  const canvases = document.createElement("div");
-  canvases.style.display = "flex";
-  canvases.style.alignItems = "center";
-  canvases.style.gap = "8px";
-  canvases.style.marginBottom = "8px";
-  canvases.style.paddingLeft = "12px";
+  panel.deepCanvases.dataset.role = "deep-canvases";
+  panel.deepCanvases.style.display = "flex";
+  panel.deepCanvases.style.alignItems = "center";
+  panel.deepCanvases.style.gap = "8px";
+  panel.deepCanvases.style.marginBottom = "8px";
+  panel.deepCanvases.style.paddingLeft = "12px";
 
   panel.previousCanvas.dataset.role = "previous";
   panel.previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
@@ -329,9 +343,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   panel.currentCanvas.style.background = "#111";
   panel.currentCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
 
-  canvases.appendChild(panel.previousCanvas);
-  canvases.appendChild(arrow);
-  canvases.appendChild(panel.currentCanvas);
+  panel.deepCanvases.appendChild(panel.previousCanvas);
+  panel.deepCanvases.appendChild(arrow);
+  panel.deepCanvases.appendChild(panel.currentCanvas);
 
   panel.deepStats.dataset.role = "deep-stats";
   panel.deepStats.style.margin = "0";
@@ -342,7 +356,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   body.appendChild(panel.normalTitle);
   body.appendChild(panel.normalStats);
   body.appendChild(panel.deepTitle);
-  body.appendChild(canvases);
+  body.appendChild(panel.deepCanvases);
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
