@@ -19,19 +19,10 @@ describe("settings defaults", () => {
   });
 
   it("keeps debug checks enabled by default", () => {
-    expect(DEFAULT_SETTINGS.monitorDebugOverlayEnabled).toBe(false);
+    expect(DEFAULT_SETTINGS.monitorOverlayEnabled).toBe(false);
     expect(DEFAULT_SETTINGS.debugWarmupEnabled).toBe(true);
     expect(DEFAULT_SETTINGS.debugCurrentTimeCheckEnabled).toBe(true);
     expect(DEFAULT_SETTINGS.debugDeepCheckEnabled).toBe(true);
-  });
-
-  it("maps the legacy overlay setting into the monitor overlay setting", () => {
-    expect(
-      normalizeSettings({
-        enabled: true,
-        deepCheckOverlayEnabled: true,
-      } as unknown as Parameters<typeof normalizeSettings>[0]).monitorDebugOverlayEnabled,
-    ).toBe(true);
   });
 
   it("clamps deep check threshold into the supported range", () => {

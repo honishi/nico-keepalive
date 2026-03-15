@@ -39,7 +39,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 let enabled = true;
 let deepCheckModeEnabled = false;
 let deepCheckThresholdMs = 2 * 60 * 1000;
-let monitorDebugOverlayEnabled = false;
+let monitorOverlayEnabled = false;
 let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
 let debugDeepCheckEnabled = true;
@@ -149,7 +149,7 @@ function applySettings(settings: Settings) {
   enabled = normalized.enabled;
   deepCheckModeEnabled = normalized.deepCheckModeEnabled ?? false;
   deepCheckThresholdMs = (normalized.deepCheckThresholdSec ?? 180) * 1000;
-  monitorDebugOverlayEnabled = normalized.monitorDebugOverlayEnabled ?? false;
+  monitorOverlayEnabled = normalized.monitorOverlayEnabled ?? false;
   debugWarmupEnabled = normalized.debugWarmupEnabled ?? true;
   debugCurrentTimeCheckEnabled = normalized.debugCurrentTimeCheckEnabled ?? true;
   debugDeepCheckEnabled = normalized.debugDeepCheckEnabled ?? true;
@@ -169,7 +169,7 @@ function applySettings(settings: Settings) {
     resetDeepCheckModeAvailability();
   }
 
-  if (!monitorDebugOverlayEnabled) {
+  if (!monitorOverlayEnabled) {
     hideMonitorDebugOverlay();
   }
 }
@@ -249,7 +249,7 @@ function tick() {
           })
         : null;
     updateMonitorDebugOverlay({
-      enabled: monitorDebugOverlayEnabled,
+      enabled: monitorOverlayEnabled,
       inWarmup: true,
       warmupRemainingMs: remainingMs,
       normalCheck,
@@ -285,7 +285,7 @@ function tick() {
     lastTimeChangeAtMs = nowMs;
     resetDeepCheckMonitoringState();
     updateMonitorDebugOverlay({
-      enabled: monitorDebugOverlayEnabled,
+      enabled: monitorOverlayEnabled,
       normalCheck: createNormalCheckDebugSnapshot({
         currentTimeSec,
         lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
@@ -341,7 +341,7 @@ function tick() {
   }
 
   updateMonitorDebugOverlay({
-    enabled: monitorDebugOverlayEnabled,
+    enabled: monitorOverlayEnabled,
     normalCheck,
     deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
   });
@@ -745,7 +745,7 @@ function getCurrentSettings(): Settings {
     enabled,
     deepCheckModeEnabled,
     deepCheckThresholdSec: Math.round(deepCheckThresholdMs / 1000),
-    monitorDebugOverlayEnabled,
+    monitorOverlayEnabled,
     debugWarmupEnabled,
     debugCurrentTimeCheckEnabled,
     debugDeepCheckEnabled,

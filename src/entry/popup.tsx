@@ -243,7 +243,7 @@ const App: React.FC = () => {
 
   const handleMonitorDebugOverlayToggle = async (next: boolean) => {
     const previous = settings;
-    const nextSettings = { ...settings, monitorDebugOverlayEnabled: next };
+    const nextSettings = { ...settings, monitorOverlayEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -575,7 +575,7 @@ const App: React.FC = () => {
                 <span className="toggle-note">監視の判定状況をページ上に表示します</span>
               </span>
               <Toggle
-                checked={settings.monitorDebugOverlayEnabled ?? false}
+                checked={settings.monitorOverlayEnabled ?? false}
                 onChange={handleMonitorDebugOverlayToggle}
                 disabled={disabledAll}
               />
