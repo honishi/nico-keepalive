@@ -570,7 +570,7 @@ const App: React.FC = () => {
 
             <div className="toggle-row">
               <span className="toggle-label">
-                デバッグ用オーバーレイを表示する
+                監視状況を画面に表示する
                 <br />
                 <span className="toggle-note">監視の判定状況をページ上に表示します</span>
               </span>
