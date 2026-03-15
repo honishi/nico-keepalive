@@ -530,7 +530,7 @@ const App: React.FC = () => {
           <div className="sound-section">
             <div className="toggle-row">
               <span className="toggle-label">
-                高度な停止チェックを有効にする
+                高度な停止判定を有効にする
                 <br />
                 <span className="toggle-note">
                   映像の変化がなく、音も出ていない状態を停止判定に使います
