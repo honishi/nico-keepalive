@@ -1,6 +1,8 @@
 import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../shared/deep-check";
 
 const MONITOR_DEBUG_PANEL_ID = "nico-keepalive-monitor-debug";
+const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;
+const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 
 let monitorDebugOverlayMinimized = false;
 
@@ -57,6 +59,7 @@ type MonitorDebugOverlayElements = {
   normalTitle: HTMLDivElement;
   normalStats: HTMLPreElement;
   deepTitle: HTMLDivElement;
+  deepCanvases: HTMLDivElement;
   deepStats: HTMLPreElement;
 };
 
@@ -83,34 +86,47 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
   drawFrameThumbnail(panel.currentCanvas, deepCheck?.nextFrame);
 
   const normalCheck = args.normalCheck;
+  const deepCheckEnabled = deepCheck?.enabled ?? false;
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
-  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheck?.enabled ?? false} available=${
+  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
+  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
+  panel.deepStats.style.display = "block";
   panel.headerStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
-    `warmup=${args.inWarmup === true} remainingSec=${
+    `${formatOverlayBoolean("warmup", args.inWarmup === true, "warmup")} remainingSec=${
       typeof args.warmupRemainingMs === "number" ? Math.ceil(args.warmupRemainingMs / 1000) : 0
     }`,
   ].join("\n");
   panel.normalStats.textContent = [
     `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
       normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
-    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${normalCheck?.timeMoved ?? false}`,
+    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} ${formatOverlayBoolean(
+      "moved",
+      normalCheck?.timeMoved ?? false,
+      "movement",
+    )}`,
     `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
       normalCheck?.thresholdSec ?? "n/a"
     } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? "n/a"}`,
-    `stalled=${normalCheck?.stalled ?? false}`,
+    formatOverlayBoolean("stalled", normalCheck?.stalled ?? false, "stalled"),
   ].join("\n");
   panel.deepStats.textContent = [
     `frameDiff=${
       typeof deepCheck?.frameAverageDiff === "number"
         ? deepCheck.frameAverageDiff.toFixed(2)
         : "n/a"
-    } changed=${deepCheck?.frameChanged ?? false} eligible=${deepCheck?.visualEligible ?? false}`,
+    } ${formatOverlayBoolean("changed", deepCheck?.frameChanged ?? false, "movement")} eligible=${
+      deepCheck?.visualEligible ?? false
+    }`,
     `audioRms=${
       typeof deepCheck?.audioRms === "number" ? deepCheck.audioRms.toFixed(2) : "n/a"
-    } silent=${deepCheck?.audioSilent ?? false} eligible=${deepCheck?.audioEligible ?? false}`,
+    } ${formatOverlayBoolean("silent", deepCheck?.audioSilent ?? false, "silent")} eligible=${
+      deepCheck?.audioEligible ?? false
+    }`,
     `visualIdleSec=${
       typeof deepCheck?.visualIdleSec === "number" ? deepCheck.visualIdleSec.toFixed(1) : "n/a"
     } audioIdleSec=${
@@ -118,8 +134,28 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
     } thresholdSec=${deepCheck?.thresholdSec ?? "n/a"}`,
     `muted=${deepCheck?.muted ?? false} volume=${
       typeof deepCheck?.volume === "number" ? deepCheck.volume.toFixed(2) : "n/a"
-    } stalled=${deepCheck?.stalled ?? false}`,
+    } ${formatOverlayBoolean("stalled", deepCheck?.stalled ?? false, "stalled")}`,
   ].join("\n");
+  if (!deepCheckEnabled) {
+    panel.deepStats.textContent = "check disabled";
+  }
+}
+
+function formatOverlayBoolean(
+  label: string,
+  value: boolean,
+  kind: "warmup" | "movement" | "silent" | "stalled",
+): string {
+  switch (kind) {
+    case "warmup":
+      return value ? `💤${label}=true` : `👀${label}=false`;
+    case "movement":
+      return value ? `✅${label}=true` : `‼️${label}=false`;
+    case "silent":
+      return value ? `‼️${label}=true` : `✅${label}=false`;
+    case "stalled":
+      return value ? `‼️${label}=true` : `✅${label}=false`;
+  }
 }
 
 function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
@@ -145,6 +181,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
       "[data-role='normal-stats']",
     ) as HTMLPreElement | null;
     const deepTitle = existing.querySelector("[data-role='deep-title']") as HTMLDivElement | null;
+    const deepCanvases = existing.querySelector(
+      "[data-role='deep-canvases']",
+    ) as HTMLDivElement | null;
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
       header &&
@@ -157,6 +196,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
       normalTitle &&
       normalStats &&
       deepTitle &&
+      deepCanvases &&
       deepStats
     ) {
       return {
@@ -171,6 +211,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
         normalTitle,
         normalStats,
         deepTitle,
+        deepCanvases,
         deepStats,
       };
     }
@@ -202,7 +243,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 
   const title = document.createElement("div");
   title.dataset.role = "title";
-  title.textContent = "🔵 nico-keepalive debug overlay";
+  title.textContent = "🔵 nico-keepalive debug view";
   title.style.fontWeight = "700";
 
   const toggleButton = document.createElement("button");
@@ -242,6 +283,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
     normalTitle: document.createElement("div"),
     normalStats: document.createElement("pre"),
     deepTitle: document.createElement("div"),
+    deepCanvases: document.createElement("div"),
     deepStats: document.createElement("pre"),
   };
 
@@ -256,31 +298,31 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   header.appendChild(toggleButton);
 
   panel.headerStats.dataset.role = "header-stats";
-  panel.headerStats.style.margin = "0 0 10px";
+  panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
   panel.headerStats.style.paddingLeft = "12px";
   panel.headerStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
   panel.normalTitle.textContent = "🔵 normal check";
-  panel.normalTitle.style.marginBottom = "4px";
+  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.normalTitle.style.fontWeight = "700";
 
   panel.normalStats.dataset.role = "normal-stats";
-  panel.normalStats.style.margin = "0 0 10px";
+  panel.normalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
   panel.normalStats.style.paddingLeft = "12px";
   panel.normalStats.style.whiteSpace = "pre-wrap";
 
   panel.deepTitle.dataset.role = "deep-title";
   panel.deepTitle.textContent = "🔵 deep check";
-  panel.deepTitle.style.marginBottom = "4px";
+  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.fontWeight = "700";
 
-  const canvases = document.createElement("div");
-  canvases.style.display = "flex";
-  canvases.style.alignItems = "center";
-  canvases.style.gap = "8px";
-  canvases.style.marginBottom = "8px";
-  canvases.style.paddingLeft = "12px";
+  panel.deepCanvases.dataset.role = "deep-canvases";
+  panel.deepCanvases.style.display = "flex";
+  panel.deepCanvases.style.alignItems = "center";
+  panel.deepCanvases.style.gap = "8px";
+  panel.deepCanvases.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.deepCanvases.style.paddingLeft = "12px";
 
   panel.previousCanvas.dataset.role = "previous";
   panel.previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
@@ -304,9 +346,9 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   panel.currentCanvas.style.background = "#111";
   panel.currentCanvas.style.border = "1px solid rgba(255,255,255,0.2)";
 
-  canvases.appendChild(panel.previousCanvas);
-  canvases.appendChild(arrow);
-  canvases.appendChild(panel.currentCanvas);
+  panel.deepCanvases.appendChild(panel.previousCanvas);
+  panel.deepCanvases.appendChild(arrow);
+  panel.deepCanvases.appendChild(panel.currentCanvas);
 
   panel.deepStats.dataset.role = "deep-stats";
   panel.deepStats.style.margin = "0";
@@ -317,7 +359,7 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
   body.appendChild(panel.normalTitle);
   body.appendChild(panel.normalStats);
   body.appendChild(panel.deepTitle);
-  body.appendChild(canvases);
+  body.appendChild(panel.deepCanvases);
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
@@ -330,10 +372,12 @@ function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorDebugOverlayElements) {
   panel.root.style.padding = monitorDebugOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = monitorDebugOverlayMinimized ? "0" : "8px";
+  panel.header.style.marginBottom = monitorDebugOverlayMinimized
+    ? "0"
+    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.title.textContent = monitorDebugOverlayMinimized
     ? "🔵 nico-keepalive"
-    : "🔵 nico-keepalive debug overlay";
+    : "🔵 nico-keepalive debug view";
   panel.body.style.display = monitorDebugOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorDebugOverlayMinimized ? "+" : "-";
 }
