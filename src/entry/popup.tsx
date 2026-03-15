@@ -241,9 +241,9 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMonitorDebugOverlayToggle = async (next: boolean) => {
+  const handleMonitorOverlayToggle = async (next: boolean) => {
     const previous = settings;
-    const nextSettings = { ...settings, monitorDebugOverlayEnabled: next };
+    const nextSettings = { ...settings, monitorOverlayEnabled: next };
     setSettingsState(nextSettings);
     try {
       await setSettings(nextSettings);
@@ -530,7 +530,7 @@ const App: React.FC = () => {
           <div className="sound-section">
             <div className="toggle-row">
               <span className="toggle-label">
-                高度な停止チェックを有効にする
+                高度な放送停止判定を有効にする
                 <br />
                 <span className="toggle-note">
                   映像の変化がなく、音も出ていない状態を停止判定に使います
@@ -570,13 +570,13 @@ const App: React.FC = () => {
 
             <div className="toggle-row">
               <span className="toggle-label">
-                デバッグ用オーバーレイを表示する
+                監視状況を画面に表示する
                 <br />
                 <span className="toggle-note">監視の判定状況をページ上に表示します</span>
               </span>
               <Toggle
-                checked={settings.monitorDebugOverlayEnabled ?? false}
-                onChange={handleMonitorDebugOverlayToggle}
+                checked={settings.monitorOverlayEnabled ?? false}
+                onChange={handleMonitorOverlayToggle}
                 disabled={disabledAll}
               />
             </div>
