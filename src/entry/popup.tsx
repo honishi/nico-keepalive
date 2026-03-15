@@ -544,7 +544,7 @@ const App: React.FC = () => {
 
             <div className="slider-block">
               <div className="slider-header">
-                <span className="slider-label">高度な停止チェックの判定時間</span>
+                <span className="slider-label">高度な停止判定までの時間</span>
                 <span className="slider-value">
                   {formatDurationLabel(
                     settings.deepCheckThresholdSec ?? DEEP_CHECK_THRESHOLD_MIN_SEC,
