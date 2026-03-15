@@ -562,7 +562,7 @@ const App: React.FC = () => {
               />
               <div className="slider-scale">
                 <span>20秒</span>
-                <span>10分</span>
+                <span>5分</span>
               </div>
             </div>
 

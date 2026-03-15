@@ -38,7 +38,7 @@ const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 let enabled = true;
 let deepCheckModeEnabled = false;
-let deepCheckThresholdMs = 2 * 60 * 1000;
+let deepCheckThresholdMs = DEEP_CHECK_THRESHOLD_DEFAULT_SEC * 1000;
 let monitorOverlayEnabled = false;
 let debugWarmupEnabled = true;
 let debugCurrentTimeCheckEnabled = true;
