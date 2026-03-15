@@ -89,28 +89,35 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
   })`;
   panel.headerStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
-    `warmup=${args.inWarmup === true} remainingSec=${
+    `warmup=${formatOverlayBoolean(args.inWarmup === true, "warmup")} remainingSec=${
       typeof args.warmupRemainingMs === "number" ? Math.ceil(args.warmupRemainingMs / 1000) : 0
     }`,
   ].join("\n");
   panel.normalStats.textContent = [
     `currentTime=${normalCheck?.currentTimeSec.toFixed(2) ?? "n/a"} lastObserved=${
       normalCheck?.lastObservedCurrentTimeSec.toFixed(2) ?? "n/a"
-    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${normalCheck?.timeMoved ?? false}`,
+    } delta=${normalCheck?.deltaSec.toFixed(2) ?? "n/a"} moved=${formatOverlayBoolean(
+      normalCheck?.timeMoved ?? false,
+      "movement",
+    )}`,
     `idleSec=${normalCheck?.idleSec.toFixed(1) ?? "n/a"} thresholdSec=${
       normalCheck?.thresholdSec ?? "n/a"
     } epsilonSec=${normalCheck?.epsilonSec.toFixed(2) ?? "n/a"}`,
-    `stalled=${normalCheck?.stalled ?? false}`,
+    `stalled=${formatOverlayBoolean(normalCheck?.stalled ?? false, "stalled")}`,
   ].join("\n");
   panel.deepStats.textContent = [
     `frameDiff=${
       typeof deepCheck?.frameAverageDiff === "number"
         ? deepCheck.frameAverageDiff.toFixed(2)
         : "n/a"
-    } changed=${deepCheck?.frameChanged ?? false} eligible=${deepCheck?.visualEligible ?? false}`,
+    } changed=${formatOverlayBoolean(deepCheck?.frameChanged ?? false, "movement")} eligible=${
+      deepCheck?.visualEligible ?? false
+    }`,
     `audioRms=${
       typeof deepCheck?.audioRms === "number" ? deepCheck.audioRms.toFixed(2) : "n/a"
-    } silent=${deepCheck?.audioSilent ?? false} eligible=${deepCheck?.audioEligible ?? false}`,
+    } silent=${formatOverlayBoolean(deepCheck?.audioSilent ?? false, "silent")} eligible=${
+      deepCheck?.audioEligible ?? false
+    }`,
     `visualIdleSec=${
       typeof deepCheck?.visualIdleSec === "number" ? deepCheck.visualIdleSec.toFixed(1) : "n/a"
     } audioIdleSec=${
@@ -118,8 +125,24 @@ export function updateMonitorDebugOverlay(args: MonitorDebugOverlayUpdateArgs) {
     } thresholdSec=${deepCheck?.thresholdSec ?? "n/a"}`,
     `muted=${deepCheck?.muted ?? false} volume=${
       typeof deepCheck?.volume === "number" ? deepCheck.volume.toFixed(2) : "n/a"
-    } stalled=${deepCheck?.stalled ?? false}`,
+    } stalled=${formatOverlayBoolean(deepCheck?.stalled ?? false, "stalled")}`,
   ].join("\n");
+}
+
+function formatOverlayBoolean(
+  value: boolean,
+  kind: "warmup" | "movement" | "silent" | "stalled",
+): string {
+  switch (kind) {
+    case "warmup":
+      return value ? "true😴" : "false👀";
+    case "movement":
+      return value ? "true✅" : "false‼️";
+    case "silent":
+      return value ? "true‼️" : "false✅";
+    case "stalled":
+      return value ? "true‼️" : "false✅";
+  }
 }
 
 function ensureMonitorDebugOverlay(): MonitorDebugOverlayElements | null {
