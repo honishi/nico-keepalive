@@ -116,9 +116,11 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   const normalCheck = args.normalCheck;
   const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
-  // ステータスサマリーでは、deep check が実質使えないときは映像/音の両方をマスクする。
-  const shouldMaskDeepCheckSummary =
-    !deepCheckEnabled || (deepCheck?.audioEligible ?? false) === false;
+  // ステータスサマリーでは、deep check の映像/音の両方が使えるときだけ状態を表示する。
+  const canShowDeepCheckSummaryStatus =
+    deepCheckEnabled &&
+    (deepCheck?.visualEligible ?? false) === true &&
+    (deepCheck?.audioEligible ?? false) === true;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
@@ -128,15 +130,15 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
       "映像",
-      shouldMaskDeepCheckSummary
-        ? "-"
-        : formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement"),
+      canShowDeepCheckSummaryStatus
+        ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
+        : "-",
     ],
     [
       "音",
-      shouldMaskDeepCheckSummary
-        ? "-"
-        : formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent"),
+      canShowDeepCheckSummaryStatus
+        ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
+        : "-",
     ],
     ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
   ];
