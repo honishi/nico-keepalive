@@ -88,22 +88,29 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   drawFrameThumbnail(panel.currentCanvas, deepCheck?.nextFrame);
 
   const normalCheck = args.normalCheck;
+  const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
-  panel.collapsedSummary.textContent = [
-    `再生: ${formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")}`,
-    `映像: ${
-      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement") : "-"
-    }`,
-    `音: ${
-      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent") : "-"
-    }`,
-    `判定: ${formatOverlayStatusIcon(collapsedStopStalled, "stalled")}`,
-  ].join("  ");
+  panel.collapsedSummary.textContent = pausedOrEnded
+    ? "再生: ー  映像: ー  音: ー  判定: ー"
+    : [
+        `再生: ${formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")}`,
+        `映像: ${
+          deepCheckEnabled
+            ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
+            : "-"
+        }`,
+        `音: ${
+          deepCheckEnabled
+            ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
+            : "-"
+        }`,
+        `判定: ${formatOverlayStatusIcon(collapsedStopStalled, "stalled")}`,
+      ].join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
