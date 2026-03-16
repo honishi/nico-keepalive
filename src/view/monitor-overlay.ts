@@ -116,6 +116,7 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   const normalCheck = args.normalCheck;
   const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
+  const deepCheckMuted = (deepCheck?.muted ?? false) || (deepCheck?.volume ?? 0) === 0;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
@@ -125,13 +126,15 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
       "映像",
-      deepCheckEnabled
+      deepCheckEnabled && !deepCheckMuted
         ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
         : "-",
     ],
     [
       "音",
-      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent") : "-",
+      deepCheckEnabled && !deepCheckMuted
+        ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
+        : "-",
     ],
     ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
   ];
