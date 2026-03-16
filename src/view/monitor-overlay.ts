@@ -95,22 +95,23 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
-  panel.collapsedSummary.textContent = pausedOrEnded
-    ? "再生: ー  映像: ー  音: ー  判定: ー"
-    : [
-        `再生: ${formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")}`,
-        `映像: ${
-          deepCheckEnabled
-            ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
-            : "-"
-        }`,
-        `音: ${
-          deepCheckEnabled
-            ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
-            : "-"
-        }`,
-        `判定: ${formatOverlayStatusIcon(collapsedStopStalled, "stalled")}`,
-      ].join("  ");
+  const collapsedSummaryEntries: [string, string][] = [
+    ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
+    [
+      "映像",
+      deepCheckEnabled
+        ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
+        : "-",
+    ],
+    [
+      "音",
+      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent") : "-",
+    ],
+    ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
+  ];
+  panel.collapsedSummary.textContent = collapsedSummaryEntries
+    .map(([label, value]) => `${label}: ${pausedOrEnded ? "ー" : value}`)
+    .join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
