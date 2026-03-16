@@ -419,6 +419,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   panel.statusSummary.dataset.role = "status-summary";
   panel.statusSummary.style.display = "none";
+  panel.statusSummary.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
   panel.statusSummary.style.whiteSpace = "pre-wrap";
   panel.statusSummary.style.paddingLeft = "12px";
 
