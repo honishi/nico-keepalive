@@ -71,6 +71,25 @@ type MonitorOverlayElements = {
   deepStats: HTMLPreElement;
 };
 
+function clampMonitorOverlayPosition(left: number, top: number, root: HTMLDivElement) {
+  const maxLeft = Math.max(0, window.innerWidth - root.offsetWidth);
+  const maxTop = Math.max(0, window.innerHeight - root.offsetHeight);
+  return {
+    left: Math.min(maxLeft, Math.max(0, left)),
+    top: Math.min(maxTop, Math.max(0, top)),
+  };
+}
+
+function applyMonitorOverlayPosition(panel: MonitorOverlayElements) {
+  monitorOverlayPosition = clampMonitorOverlayPosition(
+    monitorOverlayPosition.left,
+    monitorOverlayPosition.top,
+    panel.root,
+  );
+  panel.root.style.left = `${monitorOverlayPosition.left}px`;
+  panel.root.style.top = `${monitorOverlayPosition.top}px`;
+}
+
 export function hideMonitorOverlay() {
   monitorOverlayMinimized = true;
   const existing = document.getElementById(MONITOR_OVERLAY_PANEL_ID);
@@ -366,8 +385,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
       left: dragStartLeft + deltaX,
       top: dragStartTop + deltaY,
     };
-    panel.root.style.left = `${monitorOverlayPosition.left}px`;
-    panel.root.style.top = `${monitorOverlayPosition.top}px`;
+    applyMonitorOverlayPosition(panel);
   });
 
   header.addEventListener("pointerup", (event) => {
@@ -471,6 +489,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
+  applyMonitorOverlayPosition(panel);
 
   return panel;
 }
@@ -484,6 +503,7 @@ function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.collapsedSummary.style.display = monitorOverlayMinimized ? "block" : "none";
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
+  applyMonitorOverlayPosition(panel);
 }
 
 function drawFrameThumbnail(
