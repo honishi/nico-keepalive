@@ -58,7 +58,7 @@ type MonitorOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
   title: HTMLDivElement;
-  collapsedSummary: HTMLDivElement;
+  statusSummary: HTMLDivElement;
   body: HTMLDivElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
@@ -116,26 +116,33 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   const normalCheck = args.normalCheck;
   const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
+  // ステータスサマリーでは、deep check の映像/音の両方が使えるときだけ状態を表示する。
+  const canShowDeepCheckSummaryStatus =
+    deepCheckEnabled &&
+    (deepCheck?.visualEligible ?? false) === true &&
+    (deepCheck?.audioEligible ?? false) === true;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
     deepCheck?.available ?? false
   })`;
-  const collapsedSummaryEntries: [string, string][] = [
+  const statusSummaryEntries: [string, string][] = [
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
       "映像",
-      deepCheckEnabled
+      canShowDeepCheckSummaryStatus
         ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
         : "-",
     ],
     [
       "音",
-      deepCheckEnabled ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent") : "-",
+      canShowDeepCheckSummaryStatus
+        ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
+        : "-",
     ],
     ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
   ];
-  panel.collapsedSummary.textContent = collapsedSummaryEntries
+  panel.statusSummary.textContent = statusSummaryEntries
     .map(([label, value]) => `${label}: ${pausedOrEnded ? "ー" : value}`)
     .join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
@@ -210,8 +217,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   if (existing instanceof HTMLDivElement) {
     const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
     const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
-    const collapsedSummary = existing.querySelector(
-      "[data-role='collapsed-summary']",
+    const statusSummary = existing.querySelector(
+      "[data-role='status-summary']",
     ) as HTMLDivElement | null;
     const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
     const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
@@ -238,7 +245,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     if (
       header &&
       title &&
-      collapsedSummary &&
+      statusSummary &&
       body &&
       toggleButton &&
       previousCanvas &&
@@ -254,7 +261,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
         root: existing,
         header,
         title,
-        collapsedSummary,
+        statusSummary,
         body,
         toggleButton,
         previousCanvas,
@@ -328,7 +335,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     root,
     header,
     title,
-    collapsedSummary: document.createElement("div"),
+    statusSummary: document.createElement("div"),
     body,
     toggleButton,
     previousCanvas: document.createElement("canvas"),
@@ -414,10 +421,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.appendChild(title);
   header.appendChild(toggleButton);
 
-  panel.collapsedSummary.dataset.role = "collapsed-summary";
-  panel.collapsedSummary.style.display = "none";
-  panel.collapsedSummary.style.whiteSpace = "pre-wrap";
-  panel.collapsedSummary.style.paddingLeft = "12px";
+  panel.statusSummary.dataset.role = "status-summary";
+  panel.statusSummary.style.display = "none";
+  panel.statusSummary.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
+  panel.statusSummary.style.whiteSpace = "pre-wrap";
+  panel.statusSummary.style.paddingLeft = "12px";
 
   panel.headerStats.dataset.role = "header-stats";
   panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
@@ -485,7 +493,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
-  root.appendChild(panel.collapsedSummary);
+  root.appendChild(panel.statusSummary);
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
@@ -496,11 +504,9 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.root.style.padding = monitorOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = monitorOverlayMinimized
-    ? `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`
-    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.title.textContent = "🔵 nico-keepalive monitor status";
-  panel.collapsedSummary.style.display = monitorOverlayMinimized ? "block" : "none";
+  panel.statusSummary.style.display = "block";
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
   applyMonitorOverlayPosition(panel);
