@@ -504,9 +504,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.root.style.padding = monitorOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = monitorOverlayMinimized
-    ? `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`
-    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.title.textContent = "🔵 nico-keepalive monitor status";
   panel.statusSummary.style.display = "block";
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
