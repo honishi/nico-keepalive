@@ -3,8 +3,15 @@ import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../shared/deep-
 const MONITOR_OVERLAY_PANEL_ID = "nico-keepalive-monitor";
 const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;
 const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
+const MONITOR_OVERLAY_INITIAL_LEFT_PX = 16;
+const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
+const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
 
 let monitorOverlayMinimized = true;
+let monitorOverlayPosition = {
+  left: MONITOR_OVERLAY_INITIAL_LEFT_PX,
+  top: MONITOR_OVERLAY_INITIAL_TOP_PX,
+};
 
 export type NormalCheckSnapshot = {
   currentTimeSec: number;
@@ -63,6 +70,25 @@ type MonitorOverlayElements = {
   deepCanvases: HTMLDivElement;
   deepStats: HTMLPreElement;
 };
+
+function clampMonitorOverlayPosition(left: number, top: number, root: HTMLDivElement) {
+  const maxLeft = Math.max(0, window.innerWidth - root.offsetWidth);
+  const maxTop = Math.max(0, window.innerHeight - root.offsetHeight);
+  return {
+    left: Math.min(maxLeft, Math.max(0, left)),
+    top: Math.min(maxTop, Math.max(0, top)),
+  };
+}
+
+function applyMonitorOverlayPosition(panel: MonitorOverlayElements) {
+  monitorOverlayPosition = clampMonitorOverlayPosition(
+    monitorOverlayPosition.left,
+    monitorOverlayPosition.top,
+    panel.root,
+  );
+  panel.root.style.left = `${monitorOverlayPosition.left}px`;
+  panel.root.style.top = `${monitorOverlayPosition.top}px`;
+}
 
 export function hideMonitorOverlay() {
   monitorOverlayMinimized = true;
@@ -246,8 +272,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const root = document.createElement("div");
   root.id = MONITOR_OVERLAY_PANEL_ID;
   root.style.position = "fixed";
-  root.style.left = "16px";
-  root.style.top = "16px";
+  root.style.left = `${monitorOverlayPosition.left}px`;
+  root.style.top = `${monitorOverlayPosition.top}px`;
   root.style.zIndex = "999999";
   root.style.padding = "10px";
   root.style.background = "rgba(0, 0, 0, 0.85)";
@@ -266,6 +292,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.style.justifyContent = "space-between";
   header.style.gap = "8px";
   header.style.marginBottom = "8px";
+  header.style.cursor = "grab";
 
   const title = document.createElement("div");
   title.dataset.role = "title";
@@ -314,7 +341,70 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     deepStats: document.createElement("pre"),
   };
 
+  let dragPointerId: number | null = null;
+  let dragStartClientX = 0;
+  let dragStartClientY = 0;
+  let dragStartLeft = 0;
+  let dragStartTop = 0;
+  let suppressHeaderClick = false;
+
+  const endDrag = () => {
+    dragPointerId = null;
+    header.style.cursor = "grab";
+    document.body.style.userSelect = "";
+  };
+
+  header.addEventListener("pointerdown", (event) => {
+    if (event.target instanceof Element && event.target.closest("[data-role='toggle']")) {
+      return;
+    }
+    dragPointerId = event.pointerId;
+    dragStartClientX = event.clientX;
+    dragStartClientY = event.clientY;
+    dragStartLeft = monitorOverlayPosition.left;
+    dragStartTop = monitorOverlayPosition.top;
+    suppressHeaderClick = false;
+    header.style.cursor = "grabbing";
+    document.body.style.userSelect = "none";
+    header.setPointerCapture(event.pointerId);
+  });
+
+  header.addEventListener("pointermove", (event) => {
+    if (dragPointerId !== event.pointerId) return;
+    const deltaX = event.clientX - dragStartClientX;
+    const deltaY = event.clientY - dragStartClientY;
+
+    if (
+      Math.abs(deltaX) >= MONITOR_OVERLAY_DRAG_THRESHOLD_PX ||
+      Math.abs(deltaY) >= MONITOR_OVERLAY_DRAG_THRESHOLD_PX
+    ) {
+      suppressHeaderClick = true;
+    }
+
+    monitorOverlayPosition = {
+      left: dragStartLeft + deltaX,
+      top: dragStartTop + deltaY,
+    };
+    applyMonitorOverlayPosition(panel);
+  });
+
+  header.addEventListener("pointerup", (event) => {
+    if (dragPointerId !== event.pointerId) return;
+    header.releasePointerCapture(event.pointerId);
+    endDrag();
+  });
+
+  header.addEventListener("pointercancel", (event) => {
+    if (dragPointerId !== event.pointerId) return;
+    endDrag();
+  });
+
   header.addEventListener("click", (event) => {
+    if (suppressHeaderClick) {
+      suppressHeaderClick = false;
+      event.preventDefault();
+      return;
+    }
     if (!monitorOverlayMinimized) return;
     event.preventDefault();
     monitorOverlayMinimized = false;
@@ -399,6 +489,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
+  applyMonitorOverlayPosition(panel);
 
   return panel;
 }
@@ -412,6 +503,7 @@ function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.collapsedSummary.style.display = monitorOverlayMinimized ? "block" : "none";
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
   panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
+  applyMonitorOverlayPosition(panel);
 }
 
 function drawFrameThumbnail(
