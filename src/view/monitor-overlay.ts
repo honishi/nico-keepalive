@@ -116,7 +116,9 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   const normalCheck = args.normalCheck;
   const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
-  const deepCheckAudioUnavailable = (deepCheck?.audioEligible ?? false) === false;
+  // ステータスサマリーでは、deep check が実質使えないときは映像/音の両方をマスクする。
+  const shouldMaskDeepCheckSummary =
+    !deepCheckEnabled || (deepCheck?.audioEligible ?? false) === false;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
   panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
   panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
@@ -126,15 +128,15 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
       "映像",
-      deepCheckEnabled && !deepCheckAudioUnavailable
-        ? formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement")
-        : "-",
+      shouldMaskDeepCheckSummary
+        ? "-"
+        : formatOverlayStatusIcon(deepCheck?.frameChanged ?? false, "movement"),
     ],
     [
       "音",
-      deepCheckEnabled && !deepCheckAudioUnavailable
-        ? formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent")
-        : "-",
+      shouldMaskDeepCheckSummary
+        ? "-"
+        : formatOverlayStatusIcon(deepCheck?.audioSilent ?? false, "silent"),
     ],
     ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
   ];
