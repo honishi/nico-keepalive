@@ -115,7 +115,8 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   drawFrameThumbnail(panel.currentCanvas, deepCheck?.nextFrame);
 
   const normalCheck = args.normalCheck;
-  const pausedOrEnded = (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false);
+  const shouldMaskStatusSummary =
+    (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false) || (args.chasePlay ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
   // ステータスサマリーでは、deep check の映像/音の両方が使えるときだけ状態を表示する。
   const canShowDeepCheckSummaryStatus =
@@ -144,7 +145,7 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     ["判定", formatOverlayStatusIcon(collapsedStopStalled, "stalled")],
   ];
   panel.statusSummary.textContent = statusSummaryEntries
-    .map(([label, value]) => `${label}: ${pausedOrEnded ? "ー" : value}`)
+    .map(([label, value]) => `${label}: ${shouldMaskStatusSummary ? "ー" : value}`)
     .join("  ");
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
