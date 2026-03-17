@@ -519,14 +519,7 @@ const App: React.FC = () => {
                 </p>
               )}
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="section">
-        <p className="heading">実験機能</p>
-        <div className="section-body">
-          <div className="sound-section">
             <div className="toggle-row">
               <span className="toggle-label">
                 高度な放送停止判定を有効にする
