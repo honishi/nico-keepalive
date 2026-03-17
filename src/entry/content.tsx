@@ -239,7 +239,9 @@ function tick() {
   if (firstTickAtMs === undefined) {
     firstTickAtMs = nowMs;
   }
-  if (debugWarmupEnabled && nowMs - firstTickAtMs < WARMUP_SKIP_MS) {
+  const warmupRemainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
+  const inWarmup = debugWarmupEnabled && warmupRemainingMs > 0;
+  if (inWarmup) {
     const normalCheck = createNormalCheckSnapshot({
       currentTimeSec,
       lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
@@ -254,19 +256,18 @@ function tick() {
     // スキップ期間中も基準は更新しておく（スキップ明けに誤検知しないため）
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
-    const remainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
 
     const deepCheck =
       deepCheckModeEnabled && debugDeepCheckEnabled
         ? evaluateDeepCheck(video, nowMs, {
             inWarmup: true,
-            warmupRemainingMs: remainingMs,
+            warmupRemainingMs,
           })
         : null;
     updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
-      inWarmup: true,
-      warmupRemainingMs: remainingMs,
+      inWarmup,
+      warmupRemainingMs,
       chasePlay,
       normalCheck,
       deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
@@ -275,7 +276,7 @@ function tick() {
     // eslint-disable-next-line no-console
     console.log(
       `[nico-keepalive/content] warmup: モニターをスキップします (残り ${Math.ceil(
-        remainingMs / 1000,
+        warmupRemainingMs / 1000,
       )} 秒)`,
     );
     return;
