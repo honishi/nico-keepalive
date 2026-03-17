@@ -50,6 +50,7 @@ export type MonitorOverlayUpdateArgs = {
   enabled: boolean;
   inWarmup?: boolean;
   warmupRemainingMs?: number;
+  chasePlay?: boolean;
   normalCheck?: NormalCheckSnapshot;
   deepCheck?: DeepCheckOverlaySnapshot | null;
 };
@@ -150,7 +151,9 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
   panel.deepStats.style.display = "block";
   panel.headerStats.textContent = [
-    `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false}`,
+    `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false} chasePlay=${
+      args.chasePlay ?? false
+    }`,
     `${formatOverlayBoolean("warmup", args.inWarmup === true, "warmup")} remainingSec=${
       typeof args.warmupRemainingMs === "number" ? Math.ceil(args.warmupRemainingMs / 1000) : 0
     }`,
