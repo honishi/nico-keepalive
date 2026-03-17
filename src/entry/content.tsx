@@ -329,6 +329,11 @@ function tick() {
     stalled: isCurrentTimeStalled,
   });
   if (isCurrentTimeStalled) {
+    updateMonitorOverlay({
+      enabled: monitorOverlayEnabled,
+      normalCheck,
+      deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, null),
+    });
     handleStall(nowMs, "currentTime");
     return;
   }
@@ -338,7 +343,13 @@ function tick() {
     deepCheckModeEnabled && debugDeepCheckEnabled ? evaluateDeepCheck(video, nowMs) : null;
 
   if (deepCheck?.stalled) {
+    updateMonitorOverlay({
+      enabled: monitorOverlayEnabled,
+      normalCheck,
+      deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
+    });
     handleStall(nowMs, "deepCheck");
+    return;
   }
 
   updateMonitorOverlay({
