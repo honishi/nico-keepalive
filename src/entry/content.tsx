@@ -783,10 +783,8 @@ function showCountdown(durationMs: number, reason: "currentTime" | "deepCheck") 
     const remaining = Math.max(0, durationMs - elapsed);
     toast.textContent =
       reason === "deepCheck"
-        ? `高度な停止チェックにより配信停止を検知: ${Math.ceil(
-            remaining / 1000,
-          )} 秒後にリロードします`
-        : `映像停止を検知: ${Math.ceil(remaining / 1000)} 秒後にリロードします`;
+        ? `映像・音声の停止を検知: ${Math.ceil(remaining / 1000)} 秒後にリロードします`
+        : `再生の停止を検知: ${Math.ceil(remaining / 1000)} 秒後にリロードします`;
     if (remaining > 0) {
       requestAnimationFrame(update);
     }
