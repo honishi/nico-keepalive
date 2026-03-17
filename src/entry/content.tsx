@@ -32,6 +32,7 @@ const TICK_INTERVAL_MS = 5_000;
 const WARMUP_SKIP_MS = 60_000; // tick 初回開始からこの時間は監視処理をスキップする
 const NO_TIME_CHANGE_THRESHOLD_MS = 20_000; // currentTime が変化しない状態がこの時間続くと停止扱い
 const TIME_CHANGE_EPSILON_SEC = 0.01; // currentTime の微小揺れ（±）をノイズとして無視するための閾値
+const CHASE_PLAY_LIVE_EDGE_THRESHOLD_SEC = 5;
 const COUNTDOWN_MS = 5_000;
 const TOAST_ID = "nico-keepalive-toast";
 const PROGRAM_STATE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -202,6 +203,18 @@ function findVideo(): HTMLVideoElement | null {
   return video instanceof HTMLVideoElement ? video : null;
 }
 
+function isChasePlay(video: HTMLVideoElement, currentTimeSec: number): boolean {
+  if (video.seekable.length === 0) return false;
+
+  try {
+    const liveEdgeSec = video.seekable.end(video.seekable.length - 1);
+    if (!Number.isFinite(liveEdgeSec)) return false;
+    return liveEdgeSec - currentTimeSec > CHASE_PLAY_LIVE_EDGE_THRESHOLD_SEC;
+  } catch {
+    return false;
+  }
+}
+
 function tick() {
   // 1) 監視の前提チェック（拡張が無効 / video がまだ無い / currentTime が取れない等）
   if (!enabled) return;
@@ -215,6 +228,7 @@ function tick() {
   const currentTimeSec = video.currentTime;
   const paused = video.paused;
   const ended = video.ended;
+  const chasePlay = isChasePlay(video, currentTimeSec);
   const previousObservedCurrentTimeSec = lastObservedCurrentTimeSec;
   const previousTimeChangeAtMs = lastTimeChangeAtMs;
 
@@ -253,6 +267,7 @@ function tick() {
       enabled: monitorOverlayEnabled,
       inWarmup: true,
       warmupRemainingMs: remainingMs,
+      chasePlay,
       normalCheck,
       deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
     });
@@ -279,14 +294,15 @@ function tick() {
     logDebug("モニターしています...");
   }
 
-  // 6) 一時停止/終了中は「停止」と誤検知しないよう、
+  // 6) 一時停止/終了中、または追いかけ再生中は「停止」と誤検知しないよう、
   //    監視基準（currentTime / 最終変化時刻）をリセットして終了する
-  if (paused || ended) {
+  if (paused || ended || chasePlay) {
     lastObservedCurrentTimeSec = currentTimeSec;
     lastTimeChangeAtMs = nowMs;
     resetDeepCheckMonitoringState();
     updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
+      chasePlay,
       normalCheck: createNormalCheckSnapshot({
         currentTimeSec,
         lastObservedCurrentTimeSec: previousObservedCurrentTimeSec,
@@ -331,6 +347,7 @@ function tick() {
   if (isCurrentTimeStalled) {
     updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
+      chasePlay,
       normalCheck,
       deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, null),
     });
@@ -345,6 +362,7 @@ function tick() {
   if (deepCheck?.stalled) {
     updateMonitorOverlay({
       enabled: monitorOverlayEnabled,
+      chasePlay,
       normalCheck,
       deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
     });
@@ -354,6 +372,7 @@ function tick() {
 
   updateMonitorOverlay({
     enabled: monitorOverlayEnabled,
+    chasePlay,
     normalCheck,
     deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, deepCheck),
   });
