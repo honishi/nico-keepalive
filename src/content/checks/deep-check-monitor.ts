@@ -8,7 +8,7 @@ import {
   hasFrameMeaningfulChange,
   isSilentFromTimeDomainData,
   reduceDeepCheckState,
-} from "../../shared/deep-check";
+} from "./deep-check-core";
 import type { MonitorLogger, ProgramContext } from "../types";
 
 export type DeepCheckVisualResult = {

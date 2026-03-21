@@ -1,4 +1,4 @@
-import { createDeepCheckState } from "../src/shared/deep-check";
+import { createDeepCheckState } from "../src/content/checks/deep-check-core";
 import type {
   DeepCheckEvaluation,
   EvaluateDeepCheckArgs,
