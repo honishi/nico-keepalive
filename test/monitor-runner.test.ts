@@ -69,7 +69,7 @@ function createDeepCheckMonitorMock(
 
 describe("monitor runner", () => {
   it("updates the overlay during warmup without triggering stall handling", () => {
-    let nowMs = 0;
+    const nowMs = 0;
     const video = createVideo({ currentTime: 10 });
     const deepCheckMonitor = createDeepCheckMonitorMock({
       stalled: false,
@@ -128,7 +128,7 @@ describe("monitor runner", () => {
   });
 
   it("evaluates deep check only when the normal check has not stalled", () => {
-    let nowMs = 0;
+    const nowMs = 0;
     const video = createVideo({ currentTime: 10 });
     const deepCheckMonitor = createDeepCheckMonitorMock();
     const runner = createMonitorRunner(

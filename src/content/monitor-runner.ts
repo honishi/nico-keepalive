@@ -15,7 +15,6 @@ import {
   evaluateNormalCheck,
   isChasePlay,
   type NormalCheckSnapshotData,
-  type NormalCheckState,
 } from "./checks/normal-check";
 import type { MonitorLogger, MonitorRuntimeSettings, ProgramContext, StallReason } from "./types";
 
