@@ -55,24 +55,21 @@ describe("monitor overlay", () => {
     const dragHandle = panel?.querySelector("[data-role='drag-handle']");
     const summary = panel?.querySelector("[data-role='status-summary']");
     const toggleButton = panel?.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
-    const toggleIcon = panel?.querySelector("[data-role='toggle-icon']");
     const body = panel?.querySelector("[data-role='body']") as HTMLDivElement | null;
 
     expect(panel?.textContent).not.toContain("nico-keepalive monitor status");
     expect(header?.firstElementChild).toBe(toggleButton);
     expect(header?.lastElementChild).toBe(dragHandle);
     expect(summary?.textContent).toBe("再生: ✅  映像: ✅  音: ✅  判定: ✅");
-    expect((summary as HTMLDivElement | null)?.style.transform).toBe("translateY(1px)");
     expect(toggleButton?.dataset.state).toBe("collapsed");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Expand monitor overlay");
+    expect(toggleButton?.textContent).toBe("➕");
     expect(toggleButton?.style.borderStyle).toBe("none");
     expect(toggleButton?.style.borderWidth).toBe("0px");
     expect(toggleButton?.style.background).toBe("transparent");
     expect(toggleButton?.style.display).toBe("inline-flex");
     expect(toggleButton?.style.width).toBe("20px");
     expect(toggleButton?.style.height).toBe("20px");
-    expect(toggleIcon?.getAttribute("width")).toBe("14");
-    expect(toggleIcon?.querySelector("polyline")?.getAttribute("points")).toBe("5 3.5 11 8 5 12.5");
     expect(body?.style.display).toBe("none");
   });
 
@@ -118,9 +115,7 @@ describe("monitor overlay", () => {
 
     expect(toggleButton?.dataset.state).toBe("expanded");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Collapse monitor overlay");
-    expect(
-      document.querySelector("[data-role='toggle-icon'] polyline")?.getAttribute("points"),
-    ).toBe("3.5 5 8 11 12.5 5");
+    expect(toggleButton?.textContent).toBe("➖");
     expect(body?.style.display).toBe("block");
     expect(generalTitle?.textContent).toBe("🔵 general status");
     expect(generalStats?.textContent).toContain("paused=false ended=false chasePlay=false");

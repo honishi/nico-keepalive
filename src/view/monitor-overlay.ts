@@ -6,7 +6,6 @@ const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 const MONITOR_OVERLAY_INITIAL_LEFT_PX = 16;
 const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
 const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
-const TOGGLE_ICON_NS = "http://www.w3.org/2000/svg";
 
 let monitorOverlayMinimized = true;
 let monitorOverlayPosition = {
@@ -444,7 +443,6 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.statusSummary.style.whiteSpace = "pre-wrap";
   panel.statusSummary.style.fontWeight = "700";
   panel.statusSummary.style.flex = "1";
-  panel.statusSummary.style.transform = "translateY(1px)";
 
   dragHandle.appendChild(panel.statusSummary);
   header.appendChild(toggleButton);
@@ -546,28 +544,7 @@ function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
     "aria-label",
     minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
   );
-  button.replaceChildren(createToggleIcon(minimized));
-}
-
-function createToggleIcon(minimized: boolean): SVGSVGElement {
-  const svg = document.createElementNS(TOGGLE_ICON_NS, "svg");
-  svg.dataset.role = "toggle-icon";
-  svg.setAttribute("viewBox", "0 0 16 16");
-  svg.setAttribute("width", "14");
-  svg.setAttribute("height", "14");
-  svg.style.display = "block";
-  svg.style.overflow = "visible";
-
-  const polyline = document.createElementNS(TOGGLE_ICON_NS, "polyline");
-  polyline.setAttribute("points", minimized ? "5 3.5 11 8 5 12.5" : "3.5 5 8 11 12.5 5");
-  polyline.setAttribute("fill", "none");
-  polyline.setAttribute("stroke", "currentColor");
-  polyline.setAttribute("stroke-width", "2.25");
-  polyline.setAttribute("stroke-linecap", "round");
-  polyline.setAttribute("stroke-linejoin", "round");
-
-  svg.appendChild(polyline);
-  return svg;
+  button.textContent = minimized ? "➕" : "➖";
 }
 
 function drawFrameThumbnail(
