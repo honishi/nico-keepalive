@@ -6,6 +6,7 @@ const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 const MONITOR_OVERLAY_INITIAL_LEFT_PX = 16;
 const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
 const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
+const TOGGLE_ICON_NS = "http://www.w3.org/2000/svg";
 
 let monitorOverlayMinimized = true;
 let monitorOverlayPosition = {
@@ -322,16 +323,24 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const toggleButton = document.createElement("button");
   toggleButton.dataset.role = "toggle";
   toggleButton.type = "button";
-  toggleButton.textContent = monitorOverlayMinimized ? "▸" : "▾";
   toggleButton.style.pointerEvents = "auto";
-  toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
-  toggleButton.style.background = "rgba(255,255,255,0.08)";
+  toggleButton.style.display = "inline-flex";
+  toggleButton.style.alignItems = "center";
+  toggleButton.style.justifyContent = "center";
+  toggleButton.style.width = "20px";
+  toggleButton.style.height = "20px";
+  toggleButton.style.padding = "0";
+  toggleButton.style.borderStyle = "none";
+  toggleButton.style.borderWidth = "0";
+  toggleButton.style.background = "transparent";
   toggleButton.style.color = "#fff";
-  toggleButton.style.borderRadius = "4px";
   toggleButton.style.font = "inherit";
+  toggleButton.style.fontSize = "16px";
+  toggleButton.style.fontWeight = "700";
   toggleButton.style.lineHeight = "1";
-  toggleButton.style.padding = "2px 6px";
   toggleButton.style.cursor = "pointer";
+  toggleButton.style.flexShrink = "0";
+  syncToggleButton(toggleButton, monitorOverlayMinimized);
   toggleButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -423,17 +432,19 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
       event.preventDefault();
       return;
     }
-    if (!monitorOverlayMinimized) return;
     event.preventDefault();
-    monitorOverlayMinimized = false;
+    monitorOverlayMinimized = !monitorOverlayMinimized;
     applyMinimizedState(panel);
   });
 
   panel.statusSummary.dataset.role = "status-summary";
+  panel.statusSummary.style.display = "flex";
+  panel.statusSummary.style.alignItems = "center";
   panel.statusSummary.style.margin = "0";
   panel.statusSummary.style.whiteSpace = "pre-wrap";
   panel.statusSummary.style.fontWeight = "700";
   panel.statusSummary.style.flex = "1";
+  panel.statusSummary.style.transform = "translateY(1px)";
 
   dragHandle.appendChild(panel.statusSummary);
   header.appendChild(toggleButton);
@@ -525,8 +536,38 @@ function applyMinimizedState(panel: MonitorOverlayElements) {
     ? "0"
     : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
-  panel.toggleButton.textContent = monitorOverlayMinimized ? "▸" : "▾";
+  syncToggleButton(panel.toggleButton, monitorOverlayMinimized);
   applyMonitorOverlayPosition(panel);
+}
+
+function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
+  button.dataset.state = minimized ? "collapsed" : "expanded";
+  button.setAttribute(
+    "aria-label",
+    minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
+  );
+  button.replaceChildren(createToggleIcon(minimized));
+}
+
+function createToggleIcon(minimized: boolean): SVGSVGElement {
+  const svg = document.createElementNS(TOGGLE_ICON_NS, "svg");
+  svg.dataset.role = "toggle-icon";
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("width", "14");
+  svg.setAttribute("height", "14");
+  svg.style.display = "block";
+  svg.style.overflow = "visible";
+
+  const polyline = document.createElementNS(TOGGLE_ICON_NS, "polyline");
+  polyline.setAttribute("points", minimized ? "5 3.5 11 8 5 12.5" : "3.5 5 8 11 12.5 5");
+  polyline.setAttribute("fill", "none");
+  polyline.setAttribute("stroke", "currentColor");
+  polyline.setAttribute("stroke-width", "2.25");
+  polyline.setAttribute("stroke-linecap", "round");
+  polyline.setAttribute("stroke-linejoin", "round");
+
+  svg.appendChild(polyline);
+  return svg;
 }
 
 function drawFrameThumbnail(
