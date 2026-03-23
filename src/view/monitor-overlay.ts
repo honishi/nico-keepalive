@@ -544,7 +544,7 @@ function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
     "aria-label",
     minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
   );
-  button.textContent = minimized ? "➕" : "➖";
+  button.textContent = minimized ? "＋" : "−";
 }
 
 function drawFrameThumbnail(

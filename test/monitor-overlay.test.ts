@@ -63,7 +63,7 @@ describe("monitor overlay", () => {
     expect(summary?.textContent).toBe("再生: ✅  映像: ✅  音: ✅  判定: ✅");
     expect(toggleButton?.dataset.state).toBe("collapsed");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Expand monitor overlay");
-    expect(toggleButton?.textContent).toBe("➕");
+    expect(toggleButton?.textContent).toBe("＋");
     expect(toggleButton?.style.borderStyle).toBe("none");
     expect(toggleButton?.style.borderWidth).toBe("0px");
     expect(toggleButton?.style.background).toBe("transparent");
@@ -115,7 +115,7 @@ describe("monitor overlay", () => {
 
     expect(toggleButton?.dataset.state).toBe("expanded");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Collapse monitor overlay");
-    expect(toggleButton?.textContent).toBe("➖");
+    expect(toggleButton?.textContent).toBe("−");
     expect(body?.style.display).toBe("block");
     expect(generalTitle?.textContent).toBe("🔵 general status");
     expect(generalStats?.textContent).toContain("paused=false ended=false chasePlay=false");
