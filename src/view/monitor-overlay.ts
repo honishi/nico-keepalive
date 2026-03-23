@@ -6,6 +6,9 @@ const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 const MONITOR_OVERLAY_INITIAL_LEFT_PX = 16;
 const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
 const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
+const OVERLAY_ICON_COLUMN_PX = 20;
+const OVERLAY_ICON_GAP_PX = 8;
+const OVERLAY_SECTION_INDENT_PX = OVERLAY_ICON_COLUMN_PX + OVERLAY_ICON_GAP_PX;
 
 let monitorOverlayMinimized = true;
 let monitorOverlayPosition = {
@@ -58,13 +61,14 @@ export type MonitorOverlayUpdateArgs = {
 type MonitorOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
-  title: HTMLDivElement;
+  dragHandle: HTMLDivElement;
   statusSummary: HTMLDivElement;
   body: HTMLDivElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
-  headerStats: HTMLPreElement;
+  generalTitle: HTMLDivElement;
+  generalStats: HTMLPreElement;
   normalTitle: HTMLDivElement;
   normalStats: HTMLPreElement;
   deepTitle: HTMLDivElement;
@@ -124,10 +128,17 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     (deepCheck?.visualEligible ?? false) === true &&
     (deepCheck?.audioEligible ?? false) === true;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
-  panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
-  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
-    deepCheck?.available ?? false
-  })`;
+  setOverlayTitle(panel.generalTitle, "🔵", "general status");
+  setOverlayTitle(
+    panel.normalTitle,
+    "🔵",
+    `normal check (enabled=${normalCheck?.enabled ?? false})`,
+  );
+  setOverlayTitle(
+    panel.deepTitle,
+    "🔵",
+    `deep check (enabled=${deepCheckEnabled} available=${deepCheck?.available ?? false})`,
+  );
   const statusSummaryEntries: [string, string][] = [
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
@@ -151,7 +162,7 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
   panel.deepStats.style.display = "block";
-  panel.headerStats.textContent = [
+  panel.generalStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false} chasePlay=${
       args.chasePlay ?? false
     }`,
@@ -220,7 +231,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const existing = document.getElementById(MONITOR_OVERLAY_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
     const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
-    const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
+    const dragHandle = existing.querySelector("[data-role='drag-handle']") as HTMLDivElement | null;
     const statusSummary = existing.querySelector(
       "[data-role='status-summary']",
     ) as HTMLDivElement | null;
@@ -232,8 +243,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     const currentCanvas = existing.querySelector(
       "[data-role='current']",
     ) as HTMLCanvasElement | null;
-    const headerStats = existing.querySelector(
-      "[data-role='header-stats']",
+    const generalTitle = existing.querySelector(
+      "[data-role='general-title']",
+    ) as HTMLDivElement | null;
+    const generalStats = existing.querySelector(
+      "[data-role='general-stats']",
     ) as HTMLPreElement | null;
     const normalTitle = existing.querySelector(
       "[data-role='normal-title']",
@@ -248,13 +262,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
       header &&
-      title &&
+      dragHandle &&
       statusSummary &&
       body &&
       toggleButton &&
       previousCanvas &&
       currentCanvas &&
-      headerStats &&
+      generalTitle &&
+      generalStats &&
       normalTitle &&
       normalStats &&
       deepTitle &&
@@ -264,13 +279,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
       return {
         root: existing,
         header,
-        title,
+        dragHandle,
         statusSummary,
         body,
         toggleButton,
         previousCanvas,
         currentCanvas,
-        headerStats,
+        generalTitle,
+        generalStats,
         normalTitle,
         normalStats,
         deepTitle,
@@ -301,28 +317,38 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.style.display = "flex";
   header.style.alignItems = "center";
   header.style.justifyContent = "space-between";
-  header.style.gap = "8px";
-  header.style.marginBottom = "8px";
-  header.style.cursor = "grab";
+  header.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
+  header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
 
-  const title = document.createElement("div");
-  title.dataset.role = "title";
-  title.textContent = "🔵 nico-keepalive monitor status";
-  title.style.fontWeight = "700";
+  const dragHandle = document.createElement("div");
+  dragHandle.dataset.role = "drag-handle";
+  dragHandle.style.display = "flex";
+  dragHandle.style.alignItems = "center";
+  dragHandle.style.flex = "1";
+  dragHandle.style.minWidth = "0";
+  dragHandle.style.cursor = "grab";
 
   const toggleButton = document.createElement("button");
   toggleButton.dataset.role = "toggle";
   toggleButton.type = "button";
-  toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
   toggleButton.style.pointerEvents = "auto";
-  toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
-  toggleButton.style.background = "rgba(255,255,255,0.08)";
+  toggleButton.style.display = "inline-flex";
+  toggleButton.style.alignItems = "center";
+  toggleButton.style.justifyContent = "center";
+  toggleButton.style.width = `${OVERLAY_ICON_COLUMN_PX}px`;
+  toggleButton.style.height = `${OVERLAY_ICON_COLUMN_PX}px`;
+  toggleButton.style.padding = "0";
+  toggleButton.style.borderStyle = "none";
+  toggleButton.style.borderWidth = "0";
+  toggleButton.style.background = "transparent";
   toggleButton.style.color = "#fff";
-  toggleButton.style.borderRadius = "4px";
   toggleButton.style.font = "inherit";
+  toggleButton.style.fontSize = "16px";
+  toggleButton.style.fontWeight = "700";
   toggleButton.style.lineHeight = "1";
-  toggleButton.style.padding = "2px 6px";
   toggleButton.style.cursor = "pointer";
+  toggleButton.style.flexShrink = "0";
+  syncToggleButton(toggleButton, monitorOverlayMinimized);
   toggleButton.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -338,13 +364,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const panel = {
     root,
     header,
-    title,
+    dragHandle,
     statusSummary: document.createElement("div"),
     body,
     toggleButton,
     previousCanvas: document.createElement("canvas"),
     currentCanvas: document.createElement("canvas"),
-    headerStats: document.createElement("pre"),
+    generalTitle: document.createElement("div"),
+    generalStats: document.createElement("pre"),
     normalTitle: document.createElement("div"),
     normalStats: document.createElement("pre"),
     deepTitle: document.createElement("div"),
@@ -361,26 +388,23 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   const endDrag = () => {
     dragPointerId = null;
-    header.style.cursor = "grab";
+    dragHandle.style.cursor = "grab";
     document.body.style.userSelect = "";
   };
 
-  header.addEventListener("pointerdown", (event) => {
-    if (event.target instanceof Element && event.target.closest("[data-role='toggle']")) {
-      return;
-    }
+  dragHandle.addEventListener("pointerdown", (event) => {
     dragPointerId = event.pointerId;
     dragStartClientX = event.clientX;
     dragStartClientY = event.clientY;
     dragStartLeft = monitorOverlayPosition.left;
     dragStartTop = monitorOverlayPosition.top;
     suppressHeaderClick = false;
-    header.style.cursor = "grabbing";
+    dragHandle.style.cursor = "grabbing";
     document.body.style.userSelect = "none";
-    header.setPointerCapture(event.pointerId);
+    dragHandle.setPointerCapture(event.pointerId);
   });
 
-  header.addEventListener("pointermove", (event) => {
+  dragHandle.addEventListener("pointermove", (event) => {
     if (dragPointerId !== event.pointerId) return;
     const deltaX = event.clientX - dragStartClientX;
     const deltaY = event.clientY - dragStartClientY;
@@ -399,64 +423,68 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     applyMonitorOverlayPosition(panel);
   });
 
-  header.addEventListener("pointerup", (event) => {
+  dragHandle.addEventListener("pointerup", (event) => {
     if (dragPointerId !== event.pointerId) return;
-    header.releasePointerCapture(event.pointerId);
+    dragHandle.releasePointerCapture(event.pointerId);
     endDrag();
   });
 
-  header.addEventListener("pointercancel", (event) => {
+  dragHandle.addEventListener("pointercancel", (event) => {
     if (dragPointerId !== event.pointerId) return;
     endDrag();
   });
 
-  header.addEventListener("click", (event) => {
+  dragHandle.addEventListener("click", (event) => {
     if (suppressHeaderClick) {
       suppressHeaderClick = false;
       event.preventDefault();
       return;
     }
-    if (!monitorOverlayMinimized) return;
     event.preventDefault();
-    monitorOverlayMinimized = false;
+    monitorOverlayMinimized = !monitorOverlayMinimized;
     applyMinimizedState(panel);
   });
 
-  header.appendChild(title);
-  header.appendChild(toggleButton);
-
   panel.statusSummary.dataset.role = "status-summary";
-  panel.statusSummary.style.display = "none";
-  panel.statusSummary.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
+  panel.statusSummary.style.display = "flex";
+  panel.statusSummary.style.alignItems = "center";
+  panel.statusSummary.style.margin = "0";
   panel.statusSummary.style.whiteSpace = "pre-wrap";
-  panel.statusSummary.style.paddingLeft = "12px";
+  panel.statusSummary.style.fontWeight = "700";
+  panel.statusSummary.style.flex = "1";
 
-  panel.headerStats.dataset.role = "header-stats";
-  panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
-  panel.headerStats.style.paddingLeft = "12px";
-  panel.headerStats.style.whiteSpace = "pre-wrap";
+  dragHandle.appendChild(panel.statusSummary);
+  header.appendChild(toggleButton);
+  header.appendChild(dragHandle);
+
+  panel.generalTitle.dataset.role = "general-title";
+  styleOverlayTitle(panel.generalTitle);
+  setOverlayTitle(panel.generalTitle, "🔵", "general status");
+
+  panel.generalStats.dataset.role = "general-stats";
+  panel.generalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
+  panel.generalStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
+  panel.generalStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
-  panel.normalTitle.textContent = "🔵 normal check";
-  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.normalTitle.style.fontWeight = "700";
+  styleOverlayTitle(panel.normalTitle);
+  setOverlayTitle(panel.normalTitle, "🔵", "normal check");
 
   panel.normalStats.dataset.role = "normal-stats";
   panel.normalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
-  panel.normalStats.style.paddingLeft = "12px";
+  panel.normalStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
   panel.normalStats.style.whiteSpace = "pre-wrap";
 
   panel.deepTitle.dataset.role = "deep-title";
-  panel.deepTitle.textContent = "🔵 deep check";
-  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.deepTitle.style.fontWeight = "700";
+  styleOverlayTitle(panel.deepTitle);
+  setOverlayTitle(panel.deepTitle, "🔵", "deep check");
 
   panel.deepCanvases.dataset.role = "deep-canvases";
   panel.deepCanvases.style.display = "flex";
   panel.deepCanvases.style.alignItems = "center";
   panel.deepCanvases.style.gap = "8px";
   panel.deepCanvases.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.deepCanvases.style.paddingLeft = "12px";
+  panel.deepCanvases.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
 
   panel.previousCanvas.dataset.role = "previous";
   panel.previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
@@ -486,10 +514,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   panel.deepStats.dataset.role = "deep-stats";
   panel.deepStats.style.margin = "0";
-  panel.deepStats.style.paddingLeft = "12px";
+  panel.deepStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
   panel.deepStats.style.whiteSpace = "pre-wrap";
 
-  body.appendChild(panel.headerStats);
+  body.appendChild(panel.generalTitle);
+  body.appendChild(panel.generalStats);
   body.appendChild(panel.normalTitle);
   body.appendChild(panel.normalStats);
   body.appendChild(panel.deepTitle);
@@ -497,7 +526,6 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
-  root.appendChild(panel.statusSummary);
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
@@ -508,12 +536,47 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.root.style.padding = monitorOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.title.textContent = "🔵 nico-keepalive monitor status";
-  panel.statusSummary.style.display = "block";
+  panel.header.style.marginBottom = monitorOverlayMinimized
+    ? "0"
+    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
-  panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
+  syncToggleButton(panel.toggleButton, monitorOverlayMinimized);
   applyMonitorOverlayPosition(panel);
+}
+
+function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
+  button.dataset.state = minimized ? "collapsed" : "expanded";
+  button.setAttribute(
+    "aria-label",
+    minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
+  );
+  button.textContent = minimized ? "＋" : "−";
+}
+
+function styleOverlayTitle(title: HTMLDivElement) {
+  title.style.display = "flex";
+  title.style.alignItems = "center";
+  title.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
+  title.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  title.style.fontWeight = "700";
+}
+
+function setOverlayTitle(title: HTMLDivElement, icon: string, label: string) {
+  const iconElement = document.createElement("span");
+  iconElement.textContent = icon;
+  iconElement.style.display = "inline-flex";
+  iconElement.style.alignItems = "center";
+  iconElement.style.justifyContent = "center";
+  iconElement.style.width = `${OVERLAY_ICON_COLUMN_PX}px`;
+  iconElement.style.flexShrink = "0";
+
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+  labelElement.style.display = "inline-flex";
+  labelElement.style.alignItems = "center";
+  labelElement.style.minWidth = "0";
+
+  title.replaceChildren(iconElement, labelElement);
 }
 
 function drawFrameThumbnail(
