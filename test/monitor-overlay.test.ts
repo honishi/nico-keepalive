@@ -56,6 +56,10 @@ describe("monitor overlay", () => {
     const summary = panel?.querySelector("[data-role='status-summary']");
     const toggleButton = panel?.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
     const body = panel?.querySelector("[data-role='body']") as HTMLDivElement | null;
+    const generalTitle = panel?.querySelector(
+      "[data-role='general-title']",
+    ) as HTMLDivElement | null;
+    const generalTitleIcon = generalTitle?.firstElementChild as HTMLSpanElement | null;
 
     expect(panel?.textContent).not.toContain("nico-keepalive monitor status");
     expect(header?.firstElementChild).toBe(toggleButton);
@@ -70,6 +74,10 @@ describe("monitor overlay", () => {
     expect(toggleButton?.style.display).toBe("inline-flex");
     expect(toggleButton?.style.width).toBe("20px");
     expect(toggleButton?.style.height).toBe("20px");
+    expect(generalTitle?.style.display).toBe("flex");
+    expect(generalTitle?.style.gap).toBe("8px");
+    expect(generalTitleIcon?.textContent).toBe("🔵");
+    expect(generalTitleIcon?.style.width).toBe("20px");
     expect(body?.style.display).toBe("none");
   });
 
@@ -112,12 +120,14 @@ describe("monitor overlay", () => {
     const body = document.querySelector("[data-role='body']") as HTMLDivElement | null;
     const generalTitle = document.querySelector("[data-role='general-title']");
     const generalStats = document.querySelector("[data-role='general-stats']");
+    const generalTitleLabel = generalTitle?.lastElementChild as HTMLSpanElement | null;
 
     expect(toggleButton?.dataset.state).toBe("expanded");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Collapse monitor overlay");
     expect(toggleButton?.textContent).toBe("−");
     expect(body?.style.display).toBe("block");
-    expect(generalTitle?.textContent).toBe("🔵 general status");
+    expect(generalTitle?.textContent).toBe("🔵general status");
+    expect(generalTitleLabel?.textContent).toBe("general status");
     expect(generalStats?.textContent).toContain("paused=false ended=false chasePlay=false");
     expect(generalStats?.textContent).toContain("👀warmup=false remainingSec=0");
   });

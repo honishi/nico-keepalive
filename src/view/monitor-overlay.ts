@@ -6,6 +6,8 @@ const SECTION_CONTENT_MARGIN_BOTTOM_PX = 10;
 const MONITOR_OVERLAY_INITIAL_LEFT_PX = 16;
 const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
 const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
+const OVERLAY_ICON_COLUMN_PX = 20;
+const OVERLAY_ICON_GAP_PX = 8;
 
 let monitorOverlayMinimized = true;
 let monitorOverlayPosition = {
@@ -125,10 +127,17 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
     (deepCheck?.visualEligible ?? false) === true &&
     (deepCheck?.audioEligible ?? false) === true;
   const collapsedStopStalled = (normalCheck?.stalled ?? false) || (deepCheck?.stalled ?? false);
-  panel.normalTitle.textContent = `🔵 normal check (enabled=${normalCheck?.enabled ?? false})`;
-  panel.deepTitle.textContent = `🔵 deep check (enabled=${deepCheckEnabled} available=${
-    deepCheck?.available ?? false
-  })`;
+  setOverlayTitle(panel.generalTitle, "🔵", "general status");
+  setOverlayTitle(
+    panel.normalTitle,
+    "🔵",
+    `normal check (enabled=${normalCheck?.enabled ?? false})`,
+  );
+  setOverlayTitle(
+    panel.deepTitle,
+    "🔵",
+    `deep check (enabled=${deepCheckEnabled} available=${deepCheck?.available ?? false})`,
+  );
   const statusSummaryEntries: [string, string][] = [
     ["再生", formatOverlayStatusIcon(normalCheck?.timeMoved ?? false, "movement")],
     [
@@ -148,7 +157,6 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.statusSummary.textContent = statusSummaryEntries
     .map(([label, value]) => `${label}: ${shouldMaskStatusSummary ? "ー" : value}`)
     .join("  ");
-  panel.generalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
@@ -308,7 +316,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.style.display = "flex";
   header.style.alignItems = "center";
   header.style.justifyContent = "space-between";
-  header.style.gap = "8px";
+  header.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
   header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
 
   const dragHandle = document.createElement("div");
@@ -326,8 +334,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   toggleButton.style.display = "inline-flex";
   toggleButton.style.alignItems = "center";
   toggleButton.style.justifyContent = "center";
-  toggleButton.style.width = "20px";
-  toggleButton.style.height = "20px";
+  toggleButton.style.width = `${OVERLAY_ICON_COLUMN_PX}px`;
+  toggleButton.style.height = `${OVERLAY_ICON_COLUMN_PX}px`;
   toggleButton.style.padding = "0";
   toggleButton.style.borderStyle = "none";
   toggleButton.style.borderWidth = "0";
@@ -449,9 +457,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.appendChild(dragHandle);
 
   panel.generalTitle.dataset.role = "general-title";
-  panel.generalTitle.textContent = "🔵 general status";
-  panel.generalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.generalTitle.style.fontWeight = "700";
+  styleOverlayTitle(panel.generalTitle);
+  setOverlayTitle(panel.generalTitle, "🔵", "general status");
 
   panel.generalStats.dataset.role = "general-stats";
   panel.generalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
@@ -459,9 +466,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.generalStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
-  panel.normalTitle.textContent = "🔵 normal check";
-  panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.normalTitle.style.fontWeight = "700";
+  styleOverlayTitle(panel.normalTitle);
+  setOverlayTitle(panel.normalTitle, "🔵", "normal check");
 
   panel.normalStats.dataset.role = "normal-stats";
   panel.normalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
@@ -469,9 +475,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.normalStats.style.whiteSpace = "pre-wrap";
 
   panel.deepTitle.dataset.role = "deep-title";
-  panel.deepTitle.textContent = "🔵 deep check";
-  panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.deepTitle.style.fontWeight = "700";
+  styleOverlayTitle(panel.deepTitle);
+  setOverlayTitle(panel.deepTitle, "🔵", "deep check");
 
   panel.deepCanvases.dataset.role = "deep-canvases";
   panel.deepCanvases.style.display = "flex";
@@ -545,6 +550,32 @@ function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
     minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
   );
   button.textContent = minimized ? "＋" : "−";
+}
+
+function styleOverlayTitle(title: HTMLDivElement) {
+  title.style.display = "flex";
+  title.style.alignItems = "center";
+  title.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
+  title.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  title.style.fontWeight = "700";
+}
+
+function setOverlayTitle(title: HTMLDivElement, icon: string, label: string) {
+  const iconElement = document.createElement("span");
+  iconElement.textContent = icon;
+  iconElement.style.display = "inline-flex";
+  iconElement.style.alignItems = "center";
+  iconElement.style.justifyContent = "center";
+  iconElement.style.width = `${OVERLAY_ICON_COLUMN_PX}px`;
+  iconElement.style.flexShrink = "0";
+
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+  labelElement.style.display = "inline-flex";
+  labelElement.style.alignItems = "center";
+  labelElement.style.minWidth = "0";
+
+  title.replaceChildren(iconElement, labelElement);
 }
 
 function drawFrameThumbnail(
