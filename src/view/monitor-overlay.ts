@@ -58,13 +58,14 @@ export type MonitorOverlayUpdateArgs = {
 type MonitorOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
-  title: HTMLDivElement;
+  dragHandle: HTMLDivElement;
   statusSummary: HTMLDivElement;
   body: HTMLDivElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
-  headerStats: HTMLPreElement;
+  generalTitle: HTMLDivElement;
+  generalStats: HTMLPreElement;
   normalTitle: HTMLDivElement;
   normalStats: HTMLPreElement;
   deepTitle: HTMLDivElement;
@@ -147,11 +148,12 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.statusSummary.textContent = statusSummaryEntries
     .map(([label, value]) => `${label}: ${shouldMaskStatusSummary ? "ー" : value}`)
     .join("  ");
+  panel.generalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
   panel.deepStats.style.display = "block";
-  panel.headerStats.textContent = [
+  panel.generalStats.textContent = [
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false} chasePlay=${
       args.chasePlay ?? false
     }`,
@@ -220,7 +222,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const existing = document.getElementById(MONITOR_OVERLAY_PANEL_ID);
   if (existing instanceof HTMLDivElement) {
     const header = existing.querySelector("[data-role='header']") as HTMLDivElement | null;
-    const title = existing.querySelector("[data-role='title']") as HTMLDivElement | null;
+    const dragHandle = existing.querySelector("[data-role='drag-handle']") as HTMLDivElement | null;
     const statusSummary = existing.querySelector(
       "[data-role='status-summary']",
     ) as HTMLDivElement | null;
@@ -232,8 +234,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     const currentCanvas = existing.querySelector(
       "[data-role='current']",
     ) as HTMLCanvasElement | null;
-    const headerStats = existing.querySelector(
-      "[data-role='header-stats']",
+    const generalTitle = existing.querySelector(
+      "[data-role='general-title']",
+    ) as HTMLDivElement | null;
+    const generalStats = existing.querySelector(
+      "[data-role='general-stats']",
     ) as HTMLPreElement | null;
     const normalTitle = existing.querySelector(
       "[data-role='normal-title']",
@@ -248,13 +253,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     const deepStats = existing.querySelector("[data-role='deep-stats']") as HTMLPreElement | null;
     if (
       header &&
-      title &&
+      dragHandle &&
       statusSummary &&
       body &&
       toggleButton &&
       previousCanvas &&
       currentCanvas &&
-      headerStats &&
+      generalTitle &&
+      generalStats &&
       normalTitle &&
       normalStats &&
       deepTitle &&
@@ -264,13 +270,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
       return {
         root: existing,
         header,
-        title,
+        dragHandle,
         statusSummary,
         body,
         toggleButton,
         previousCanvas,
         currentCanvas,
-        headerStats,
+        generalTitle,
+        generalStats,
         normalTitle,
         normalStats,
         deepTitle,
@@ -302,18 +309,20 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   header.style.alignItems = "center";
   header.style.justifyContent = "space-between";
   header.style.gap = "8px";
-  header.style.marginBottom = "8px";
-  header.style.cursor = "grab";
+  header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
 
-  const title = document.createElement("div");
-  title.dataset.role = "title";
-  title.textContent = "🔵 nico-keepalive monitor status";
-  title.style.fontWeight = "700";
+  const dragHandle = document.createElement("div");
+  dragHandle.dataset.role = "drag-handle";
+  dragHandle.style.display = "flex";
+  dragHandle.style.alignItems = "center";
+  dragHandle.style.flex = "1";
+  dragHandle.style.minWidth = "0";
+  dragHandle.style.cursor = "grab";
 
   const toggleButton = document.createElement("button");
   toggleButton.dataset.role = "toggle";
   toggleButton.type = "button";
-  toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
+  toggleButton.textContent = monitorOverlayMinimized ? "▸" : "▾";
   toggleButton.style.pointerEvents = "auto";
   toggleButton.style.border = "1px solid rgba(255,255,255,0.25)";
   toggleButton.style.background = "rgba(255,255,255,0.08)";
@@ -338,13 +347,14 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   const panel = {
     root,
     header,
-    title,
+    dragHandle,
     statusSummary: document.createElement("div"),
     body,
     toggleButton,
     previousCanvas: document.createElement("canvas"),
     currentCanvas: document.createElement("canvas"),
-    headerStats: document.createElement("pre"),
+    generalTitle: document.createElement("div"),
+    generalStats: document.createElement("pre"),
     normalTitle: document.createElement("div"),
     normalStats: document.createElement("pre"),
     deepTitle: document.createElement("div"),
@@ -361,26 +371,23 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   const endDrag = () => {
     dragPointerId = null;
-    header.style.cursor = "grab";
+    dragHandle.style.cursor = "grab";
     document.body.style.userSelect = "";
   };
 
-  header.addEventListener("pointerdown", (event) => {
-    if (event.target instanceof Element && event.target.closest("[data-role='toggle']")) {
-      return;
-    }
+  dragHandle.addEventListener("pointerdown", (event) => {
     dragPointerId = event.pointerId;
     dragStartClientX = event.clientX;
     dragStartClientY = event.clientY;
     dragStartLeft = monitorOverlayPosition.left;
     dragStartTop = monitorOverlayPosition.top;
     suppressHeaderClick = false;
-    header.style.cursor = "grabbing";
+    dragHandle.style.cursor = "grabbing";
     document.body.style.userSelect = "none";
-    header.setPointerCapture(event.pointerId);
+    dragHandle.setPointerCapture(event.pointerId);
   });
 
-  header.addEventListener("pointermove", (event) => {
+  dragHandle.addEventListener("pointermove", (event) => {
     if (dragPointerId !== event.pointerId) return;
     const deltaX = event.clientX - dragStartClientX;
     const deltaY = event.clientY - dragStartClientY;
@@ -399,18 +406,18 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     applyMonitorOverlayPosition(panel);
   });
 
-  header.addEventListener("pointerup", (event) => {
+  dragHandle.addEventListener("pointerup", (event) => {
     if (dragPointerId !== event.pointerId) return;
-    header.releasePointerCapture(event.pointerId);
+    dragHandle.releasePointerCapture(event.pointerId);
     endDrag();
   });
 
-  header.addEventListener("pointercancel", (event) => {
+  dragHandle.addEventListener("pointercancel", (event) => {
     if (dragPointerId !== event.pointerId) return;
     endDrag();
   });
 
-  header.addEventListener("click", (event) => {
+  dragHandle.addEventListener("click", (event) => {
     if (suppressHeaderClick) {
       suppressHeaderClick = false;
       event.preventDefault();
@@ -422,19 +429,25 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     applyMinimizedState(panel);
   });
 
-  header.appendChild(title);
-  header.appendChild(toggleButton);
-
   panel.statusSummary.dataset.role = "status-summary";
-  panel.statusSummary.style.display = "none";
-  panel.statusSummary.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
+  panel.statusSummary.style.margin = "0";
   panel.statusSummary.style.whiteSpace = "pre-wrap";
-  panel.statusSummary.style.paddingLeft = "12px";
+  panel.statusSummary.style.fontWeight = "700";
+  panel.statusSummary.style.flex = "1";
 
-  panel.headerStats.dataset.role = "header-stats";
-  panel.headerStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
-  panel.headerStats.style.paddingLeft = "12px";
-  panel.headerStats.style.whiteSpace = "pre-wrap";
+  dragHandle.appendChild(panel.statusSummary);
+  header.appendChild(toggleButton);
+  header.appendChild(dragHandle);
+
+  panel.generalTitle.dataset.role = "general-title";
+  panel.generalTitle.textContent = "🔵 general status";
+  panel.generalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
+  panel.generalTitle.style.fontWeight = "700";
+
+  panel.generalStats.dataset.role = "general-stats";
+  panel.generalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
+  panel.generalStats.style.paddingLeft = "12px";
+  panel.generalStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
   panel.normalTitle.textContent = "🔵 normal check";
@@ -489,7 +502,8 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.deepStats.style.paddingLeft = "12px";
   panel.deepStats.style.whiteSpace = "pre-wrap";
 
-  body.appendChild(panel.headerStats);
+  body.appendChild(panel.generalTitle);
+  body.appendChild(panel.generalStats);
   body.appendChild(panel.normalTitle);
   body.appendChild(panel.normalStats);
   body.appendChild(panel.deepTitle);
@@ -497,7 +511,6 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   body.appendChild(panel.deepStats);
 
   root.appendChild(header);
-  root.appendChild(panel.statusSummary);
   root.appendChild(body);
   applyMinimizedState(panel);
   document.body.appendChild(root);
@@ -508,11 +521,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
 function applyMinimizedState(panel: MonitorOverlayElements) {
   panel.root.style.padding = monitorOverlayMinimized ? "6px 8px" : "10px";
-  panel.header.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.title.textContent = "🔵 nico-keepalive monitor status";
-  panel.statusSummary.style.display = "block";
+  panel.header.style.marginBottom = monitorOverlayMinimized
+    ? "0"
+    : `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.body.style.display = monitorOverlayMinimized ? "none" : "block";
-  panel.toggleButton.textContent = monitorOverlayMinimized ? "+" : "-";
+  panel.toggleButton.textContent = monitorOverlayMinimized ? "▸" : "▾";
   applyMonitorOverlayPosition(panel);
 }
 
