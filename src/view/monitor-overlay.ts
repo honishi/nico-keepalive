@@ -8,6 +8,7 @@ const MONITOR_OVERLAY_INITIAL_TOP_PX = 16;
 const MONITOR_OVERLAY_DRAG_THRESHOLD_PX = 3;
 const OVERLAY_ICON_COLUMN_PX = 20;
 const OVERLAY_ICON_GAP_PX = 8;
+const OVERLAY_SECTION_INDENT_PX = OVERLAY_ICON_COLUMN_PX + OVERLAY_ICON_GAP_PX;
 
 let monitorOverlayMinimized = true;
 let monitorOverlayPosition = {
@@ -462,7 +463,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   panel.generalStats.dataset.role = "general-stats";
   panel.generalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
-  panel.generalStats.style.paddingLeft = "12px";
+  panel.generalStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
   panel.generalStats.style.whiteSpace = "pre-wrap";
 
   panel.normalTitle.dataset.role = "normal-title";
@@ -471,7 +472,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   panel.normalStats.dataset.role = "normal-stats";
   panel.normalStats.style.margin = `0 0 ${SECTION_CONTENT_MARGIN_BOTTOM_PX}px`;
-  panel.normalStats.style.paddingLeft = "12px";
+  panel.normalStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
   panel.normalStats.style.whiteSpace = "pre-wrap";
 
   panel.deepTitle.dataset.role = "deep-title";
@@ -483,7 +484,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.deepCanvases.style.alignItems = "center";
   panel.deepCanvases.style.gap = "8px";
   panel.deepCanvases.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
-  panel.deepCanvases.style.paddingLeft = "12px";
+  panel.deepCanvases.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
 
   panel.previousCanvas.dataset.role = "previous";
   panel.previousCanvas.width = DEEP_CHECK_FRAME_WIDTH;
@@ -513,7 +514,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
 
   panel.deepStats.dataset.role = "deep-stats";
   panel.deepStats.style.margin = "0";
-  panel.deepStats.style.paddingLeft = "12px";
+  panel.deepStats.style.paddingLeft = `${OVERLAY_SECTION_INDENT_PX}px`;
   panel.deepStats.style.whiteSpace = "pre-wrap";
 
   body.appendChild(panel.generalTitle);

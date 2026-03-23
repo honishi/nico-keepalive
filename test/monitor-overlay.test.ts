@@ -121,6 +121,9 @@ describe("monitor overlay", () => {
     const generalTitle = document.querySelector("[data-role='general-title']");
     const generalStats = document.querySelector("[data-role='general-stats']");
     const generalTitleLabel = generalTitle?.lastElementChild as HTMLSpanElement | null;
+    const normalStats = document.querySelector(
+      "[data-role='normal-stats']",
+    ) as HTMLPreElement | null;
 
     expect(toggleButton?.dataset.state).toBe("expanded");
     expect(toggleButton?.getAttribute("aria-label")).toBe("Collapse monitor overlay");
@@ -128,6 +131,8 @@ describe("monitor overlay", () => {
     expect(body?.style.display).toBe("block");
     expect(generalTitle?.textContent).toBe("🔵general status");
     expect(generalTitleLabel?.textContent).toBe("general status");
+    expect((generalStats as HTMLPreElement | null)?.style.paddingLeft).toBe("28px");
+    expect(normalStats?.style.paddingLeft).toBe("28px");
     expect(generalStats?.textContent).toContain("paused=false ended=false chasePlay=false");
     expect(generalStats?.textContent).toContain("👀warmup=false remainingSec=0");
   });
