@@ -1,4 +1,4 @@
-import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../shared/deep-check";
+import { DEEP_CHECK_FRAME_HEIGHT, DEEP_CHECK_FRAME_WIDTH } from "../content/checks/deep-check-core";
 
 const MONITOR_OVERLAY_PANEL_ID = "nico-keepalive-monitor";
 const SECTION_TITLE_MARGIN_BOTTOM_PX = 6;

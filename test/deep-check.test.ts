@@ -7,7 +7,7 @@ import {
   hasFrameMeaningfulChange,
   isSilentFromTimeDomainData,
   reduceDeepCheckState,
-} from "../src/shared/deep-check";
+} from "../src/content/checks/deep-check-core";
 
 describe("deep check helpers", () => {
   it("returns false when video changes even if audio is silent", () => {
