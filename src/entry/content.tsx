@@ -1,5 +1,6 @@
 import { createMonitorRunner } from "../content/monitor-runner";
 import type { MonitorRuntimeSettings, StallReason } from "../content/types";
+import { hideMonitorOverlay, updateMonitorOverlay } from "../view/monitor-overlay";
 import { isFullscreen, toggleFullscreen } from "../shared/fullscreen";
 import { parseProgramMetaFromDocument } from "../shared/program-meta";
 import { DEEP_CHECK_THRESHOLD_DEFAULT_SEC, normalizeSettings } from "../shared/settings";
@@ -22,6 +23,7 @@ let currentSettings: Settings = normalizeSettings();
 let countdownTimer: number | undefined;
 let providerName: string | undefined;
 let isOnAir = false;
+let pageMonitorEnabled = true;
 
 function currentProgramId(): string | undefined {
   const match = window.location.pathname.match(/^\/watch\/((?:lv|ch)\d+)/);
@@ -55,19 +57,30 @@ function logTrace(message: string) {
   console.log(`[nico-keepalive/content] ${message}`);
 }
 
-const monitorRunner = createMonitorRunner({
-  initialSettings: toMonitorRuntimeSettings(currentSettings),
-  onStall: (reason, nowMs) => handleStall(nowMs, reason),
-  logger: {
-    debug: logDebug,
-    warn: logWarn,
-    trace: logTrace,
+const monitorRunner = createMonitorRunner(
+  {
+    initialSettings: toMonitorRuntimeSettings(currentSettings),
+    onStall: (reason, nowMs) => handleStall(nowMs, reason),
+    logger: {
+      debug: logDebug,
+      warn: logWarn,
+      trace: logTrace,
+    },
+    getProgramContext: () => ({
+      programId: currentProgramId(),
+      providerName,
+    }),
   },
-  getProgramContext: () => ({
-    programId: currentProgramId(),
-    providerName,
-  }),
-});
+  {
+    overlay: {
+      update: (args) =>
+        updateMonitorOverlayWithSession(args, {
+          enabled: pageMonitorEnabled,
+        }),
+      hide: () => hideMonitorOverlayWithSession(),
+    },
+  },
+);
 
 async function init() {
   await restoreFullscreenAfterReload();
@@ -129,6 +142,7 @@ function stopMonitor() {
 }
 
 function handleStall(nowMs: number, reason: StallReason): boolean {
+  if (!pageMonitorEnabled) return false;
   if (countdownTimer) return false;
 
   void saveFullscreenStateBeforeReload();
@@ -154,6 +168,40 @@ function handleStall(nowMs: number, reason: StallReason): boolean {
   }, COUNTDOWN_MS);
 
   return true;
+}
+
+function setPageMonitorEnabled(nextEnabled: boolean) {
+  if (pageMonitorEnabled === nextEnabled) return;
+
+  pageMonitorEnabled = nextEnabled;
+  monitorRunner.updateSessionSettings({ enabled: nextEnabled });
+
+  if (!nextEnabled) {
+    clearCountdown();
+    hideToast();
+    logInfo("このページでモニターと自動リロードを一時停止しました");
+  } else {
+    logInfo("このページでモニターと自動リロードを再開しました");
+  }
+
+  if (currentSettings.enabled && isOnAir) {
+    monitorRunner.tick();
+  }
+}
+
+function updateMonitorOverlayWithSession(
+  args: Parameters<typeof updateMonitorOverlay>[0],
+  session: { enabled: boolean },
+) {
+  updateMonitorOverlay({
+    ...args,
+    monitorSessionEnabled: session.enabled,
+    onToggleMonitorSessionEnabled: setPageMonitorEnabled,
+  });
+}
+
+function hideMonitorOverlayWithSession() {
+  hideMonitorOverlay();
 }
 
 function clearCountdown() {
@@ -390,7 +438,7 @@ if (__DEV__) {
       !event.metaKey &&
       event.key.toLowerCase() === "r"
     ) {
-      if (!currentSettings.enabled) return;
+      if (!currentSettings.enabled || !pageMonitorEnabled) return;
       logInfo("Ctrl+R 入力による停止シミュレーションを実行します");
       handleStall(Date.now(), "currentTime");
     }

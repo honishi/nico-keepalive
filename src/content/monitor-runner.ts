@@ -16,7 +16,13 @@ import {
   isChasePlay,
   type NormalCheckSnapshotData,
 } from "./checks/normal-check";
-import type { MonitorLogger, MonitorRuntimeSettings, ProgramContext, StallReason } from "./types";
+import type {
+  MonitorLogger,
+  MonitorRuntimeSettings,
+  ProgramContext,
+  SessionMonitorSettings,
+  StallReason,
+} from "./types";
 
 const TICK_INTERVAL_MS = 5_000;
 const WARMUP_SKIP_MS = 60_000;
@@ -44,6 +50,7 @@ type MonitorRunnerOptions = {
 
 export type MonitorRunner = {
   updateSettings: (settings: MonitorRuntimeSettings) => void;
+  updateSessionSettings: (settings: SessionMonitorSettings) => void;
   start: () => void;
   stop: () => void;
   tick: () => void;
@@ -54,6 +61,7 @@ export function createMonitorRunner(
   options: MonitorRunnerOptions = {},
 ): MonitorRunner {
   let settings = deps.initialSettings;
+  let sessionSettings: SessionMonitorSettings = { enabled: true };
   let monitorTimer: number | undefined;
   let tickCount = 0;
   let firstTickAtMs: number | undefined;
@@ -101,6 +109,14 @@ export function createMonitorRunner(
     }
   }
 
+  function updateSessionSettings(nextSettings: SessionMonitorSettings) {
+    const changed = sessionSettings.enabled !== nextSettings.enabled;
+    sessionSettings = nextSettings;
+    if (changed) {
+      resetMonitoringState();
+    }
+  }
+
   function start() {
     if (monitorTimer) return;
     if (settings.deepCheckModeEnabled) {
@@ -141,16 +157,31 @@ export function createMonitorRunner(
 
     const warmupRemainingMs = Math.max(0, WARMUP_SKIP_MS - (nowMs - firstTickAtMs));
     const inWarmup = settings.debugWarmupEnabled && warmupRemainingMs > 0;
+    const monitoringEnabled = sessionSettings.enabled;
     const normalResult = evaluateNormalCheck(normalCheckState, {
       currentTimeSec,
       nowMs,
-      enabled: settings.debugCurrentTimeCheckEnabled,
+      enabled: monitoringEnabled && settings.debugCurrentTimeCheckEnabled,
       paused,
       ended,
       inWarmup,
-      resetBaseline: !inWarmup && (paused || ended || chasePlay),
+      resetBaseline: !monitoringEnabled || (!inWarmup && (paused || ended || chasePlay)),
     });
     normalCheckState = normalResult.state;
+
+    if (!monitoringEnabled) {
+      deepCheckMonitor.resetMonitoringState();
+      overlay.update({
+        enabled: settings.monitorOverlayEnabled,
+        inWarmup: false,
+        warmupRemainingMs: 0,
+        chasePlay,
+        normalCheck: toOverlayNormalCheckSnapshot(normalResult.snapshot),
+        deepCheck: createDeepCheckOverlaySnapshot(video, nowMs, null),
+      });
+      deps.logger.trace("ページ内スイッチによりモニターを一時停止しています");
+      return;
+    }
 
     if (inWarmup) {
       const deepCheck = shouldEvaluateDeepCheck()
@@ -244,6 +275,14 @@ export function createMonitorRunner(
     return settings.deepCheckModeEnabled && settings.debugDeepCheckEnabled;
   }
 
+  function resetMonitoringState(
+    nowMs = now(),
+    currentTimeSec = normalCheckState.lastObservedCurrentTimeSec,
+  ) {
+    normalCheckState = createNormalCheckState(nowMs, currentTimeSec);
+    deepCheckMonitor.resetMonitoringState();
+  }
+
   function toOverlayNormalCheckSnapshot(snapshot: NormalCheckSnapshotData): NormalCheckSnapshot {
     return { ...snapshot };
   }
@@ -281,6 +320,7 @@ export function createMonitorRunner(
 
   return {
     updateSettings,
+    updateSessionSettings,
     start,
     stop,
     tick,
