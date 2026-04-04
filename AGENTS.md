@@ -38,6 +38,7 @@
 ## テスト / ビルド
 - テスト: `npm test`（Jest）。`test/program-meta.test.ts` あり。
 - ビルド: 開発 `npm run build-dev`（watch）、`npm run build-dev-once`、本番 `npm run build-prod`。出力先 `dist`。
+- コードを更新したときは、セットで必ず `npm run build-dev-once` を実行すること。
 
 ## 重要ファイル
 - `src/entry/content.tsx`, `src/entry/popup.tsx`, `src/shared/*`, `public/manifest.json`
