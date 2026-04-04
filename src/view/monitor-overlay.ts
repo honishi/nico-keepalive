@@ -51,6 +51,8 @@ export type DeepCheckOverlaySnapshot = {
 
 export type MonitorOverlayUpdateArgs = {
   enabled: boolean;
+  monitorSessionEnabled?: boolean;
+  onToggleMonitorSessionEnabled?: (enabled: boolean) => void;
   inWarmup?: boolean;
   warmupRemainingMs?: number;
   chasePlay?: boolean;
@@ -62,8 +64,10 @@ type MonitorOverlayElements = {
   root: HTMLDivElement;
   header: HTMLDivElement;
   dragHandle: HTMLDivElement;
+  actions: HTMLDivElement;
   statusSummary: HTMLDivElement;
   body: HTMLDivElement;
+  monitorToggleButton: HTMLButtonElement;
   toggleButton: HTMLButtonElement;
   previousCanvas: HTMLCanvasElement;
   currentCanvas: HTMLCanvasElement;
@@ -120,7 +124,10 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
 
   const normalCheck = args.normalCheck;
   const shouldMaskStatusSummary =
-    (normalCheck?.paused ?? false) || (normalCheck?.ended ?? false) || (args.chasePlay ?? false);
+    !(args.monitorSessionEnabled ?? true) ||
+    (normalCheck?.paused ?? false) ||
+    (normalCheck?.ended ?? false) ||
+    (args.chasePlay ?? false);
   const deepCheckEnabled = deepCheck?.enabled ?? false;
   // ステータスサマリーでは、deep check の映像/音の両方が使えるときだけ状態を表示する。
   const canShowDeepCheckSummaryStatus =
@@ -158,11 +165,18 @@ export function updateMonitorOverlay(args: MonitorOverlayUpdateArgs) {
   panel.statusSummary.textContent = statusSummaryEntries
     .map(([label, value]) => `${label}: ${shouldMaskStatusSummary ? "ー" : value}`)
     .join("  ");
+  syncMonitorToggleButton(panel.monitorToggleButton, args.monitorSessionEnabled ?? true);
+  panel.monitorToggleButton.onclick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    args.onToggleMonitorSessionEnabled?.(!(args.monitorSessionEnabled ?? true));
+  };
   panel.normalTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepTitle.style.marginBottom = `${SECTION_TITLE_MARGIN_BOTTOM_PX}px`;
   panel.deepCanvases.style.display = deepCheckEnabled ? "flex" : "none";
   panel.deepStats.style.display = "block";
   panel.generalStats.textContent = [
+    `sessionEnabled=${args.monitorSessionEnabled ?? true}`,
     `paused=${normalCheck?.paused ?? false} ended=${normalCheck?.ended ?? false} chasePlay=${
       args.chasePlay ?? false
     }`,
@@ -235,7 +249,11 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     const statusSummary = existing.querySelector(
       "[data-role='status-summary']",
     ) as HTMLDivElement | null;
+    const actions = existing.querySelector("[data-role='actions']") as HTMLDivElement | null;
     const body = existing.querySelector("[data-role='body']") as HTMLDivElement | null;
+    const monitorToggleButton = existing.querySelector(
+      "[data-role='monitor-toggle']",
+    ) as HTMLButtonElement | null;
     const toggleButton = existing.querySelector("[data-role='toggle']") as HTMLButtonElement | null;
     const previousCanvas = existing.querySelector(
       "[data-role='previous']",
@@ -263,8 +281,10 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     if (
       header &&
       dragHandle &&
+      actions &&
       statusSummary &&
       body &&
+      monitorToggleButton &&
       toggleButton &&
       previousCanvas &&
       currentCanvas &&
@@ -280,8 +300,10 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
         root: existing,
         header,
         dragHandle,
+        actions,
         statusSummary,
         body,
+        monitorToggleButton,
         toggleButton,
         previousCanvas,
         currentCanvas,
@@ -328,6 +350,33 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   dragHandle.style.minWidth = "0";
   dragHandle.style.cursor = "grab";
 
+  const actions = document.createElement("div");
+  actions.dataset.role = "actions";
+  actions.style.display = "inline-flex";
+  actions.style.alignItems = "center";
+  actions.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
+  actions.style.marginRight = "6px";
+  actions.style.flexShrink = "0";
+
+  const monitorToggleButton = document.createElement("button");
+  monitorToggleButton.dataset.role = "monitor-toggle";
+  monitorToggleButton.type = "button";
+  monitorToggleButton.style.pointerEvents = "auto";
+  monitorToggleButton.style.display = "inline-flex";
+  monitorToggleButton.style.alignItems = "center";
+  monitorToggleButton.style.justifyContent = "center";
+  monitorToggleButton.style.minWidth = "38px";
+  monitorToggleButton.style.height = "18px";
+  monitorToggleButton.style.padding = "0 6px";
+  monitorToggleButton.style.border = "1px solid rgba(255,255,255,0.35)";
+  monitorToggleButton.style.borderRadius = "999px";
+  monitorToggleButton.style.font = "inherit";
+  monitorToggleButton.style.fontWeight = "700";
+  monitorToggleButton.style.lineHeight = "1";
+  monitorToggleButton.style.cursor = "pointer";
+  monitorToggleButton.style.flexShrink = "0";
+  syncMonitorToggleButton(monitorToggleButton, true);
+
   const toggleButton = document.createElement("button");
   toggleButton.dataset.role = "toggle";
   toggleButton.type = "button";
@@ -365,8 +414,10 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
     root,
     header,
     dragHandle,
+    actions,
     statusSummary: document.createElement("div"),
     body,
+    monitorToggleButton,
     toggleButton,
     previousCanvas: document.createElement("canvas"),
     currentCanvas: document.createElement("canvas"),
@@ -454,7 +505,9 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.statusSummary.style.flex = "1";
 
   dragHandle.appendChild(panel.statusSummary);
+  actions.appendChild(monitorToggleButton);
   header.appendChild(toggleButton);
+  header.appendChild(actions);
   header.appendChild(dragHandle);
 
   panel.generalTitle.dataset.role = "general-title";
@@ -551,6 +604,19 @@ function syncToggleButton(button: HTMLButtonElement, minimized: boolean) {
     minimized ? "Expand monitor overlay" : "Collapse monitor overlay",
   );
   button.textContent = minimized ? "＋" : "−";
+}
+
+function syncMonitorToggleButton(button: HTMLButtonElement, enabled: boolean) {
+  button.dataset.state = enabled ? "enabled" : "disabled";
+  button.setAttribute(
+    "aria-label",
+    enabled
+      ? "Disable monitoring and reload on this page"
+      : "Enable monitoring and reload on this page",
+  );
+  button.style.background = enabled ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)";
+  button.style.color = enabled ? "#bbf7d0" : "#fecaca";
+  button.textContent = enabled ? "ON" : "OFF";
 }
 
 function styleOverlayTitle(title: HTMLDivElement) {

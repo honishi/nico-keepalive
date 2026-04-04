@@ -242,4 +242,98 @@ describe("monitor runner", () => {
     expect(deepCheckMonitor.evaluate).not.toHaveBeenCalled();
     expect(onStall).not.toHaveBeenCalled();
   });
+
+  it("skips stall detection while the page-local monitor switch is off", () => {
+    let nowMs = 0;
+    const video = createVideo({ currentTime: 10 });
+    const deepCheckMonitor = createDeepCheckMonitorMock();
+    const overlay = {
+      update: jest.fn(),
+      hide: jest.fn(),
+    };
+    const onStall = jest.fn(() => true);
+    const runner = createMonitorRunner(
+      {
+        initialSettings: createSettings({
+          debugWarmupEnabled: false,
+          deepCheckModeEnabled: true,
+        }),
+        onStall,
+        logger: {
+          debug: jest.fn(),
+          warn: jest.fn(),
+          trace: jest.fn(),
+        },
+        getProgramContext: () => ({}),
+      },
+      {
+        deepCheckMonitor,
+        overlay,
+        findVideo: () => video,
+        now: () => nowMs,
+      },
+    );
+
+    runner.updateSessionSettings({ enabled: false });
+    runner.tick();
+
+    nowMs = 60_000;
+    runner.tick();
+
+    expect(deepCheckMonitor.resetMonitoringState).toHaveBeenCalled();
+    expect(deepCheckMonitor.evaluate).not.toHaveBeenCalled();
+    expect(onStall).not.toHaveBeenCalled();
+    expect(overlay.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        enabled: true,
+        inWarmup: false,
+        warmupRemainingMs: 0,
+      }),
+    );
+  });
+
+  it("resets the stall baseline when the page-local monitor switch is turned back on", () => {
+    let nowMs = 0;
+    const video = createVideo({ currentTime: 10 });
+    const deepCheckMonitor = createDeepCheckMonitorMock();
+    const onStall = jest.fn(() => true);
+    const runner = createMonitorRunner(
+      {
+        initialSettings: createSettings({
+          debugWarmupEnabled: false,
+        }),
+        onStall,
+        logger: {
+          debug: jest.fn(),
+          warn: jest.fn(),
+          trace: jest.fn(),
+        },
+        getProgramContext: () => ({}),
+      },
+      {
+        deepCheckMonitor,
+        overlay: {
+          update: jest.fn(),
+          hide: jest.fn(),
+        },
+        findVideo: () => video,
+        now: () => nowMs,
+      },
+    );
+
+    runner.tick();
+    runner.updateSessionSettings({ enabled: false });
+
+    nowMs = 30_000;
+    runner.tick();
+    expect(onStall).not.toHaveBeenCalled();
+
+    runner.updateSessionSettings({ enabled: true });
+    runner.tick();
+    expect(onStall).not.toHaveBeenCalled();
+
+    nowMs = 50_000;
+    runner.tick();
+    expect(onStall).toHaveBeenCalledWith("currentTime", 50_000);
+  });
 });

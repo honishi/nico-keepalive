@@ -20,3 +20,7 @@ export type MonitorLogger = {
   warn: (message: string) => void;
   trace: (message: string) => void;
 };
+
+export type SessionMonitorSettings = {
+  enabled: boolean;
+};
