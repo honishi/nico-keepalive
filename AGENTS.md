@@ -51,3 +51,4 @@
 - commit は指示があるまで勝手にしないこと。
 - commit message は `docs/commit-message.md` の内容に従うこと。
 - commit 実行前に `npm run prettier` を実施すること。
+- バージョンを上げるときは、基本的に `public/manifest.json` の `version` のみ更新すればよい。
