@@ -355,6 +355,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   actions.style.display = "inline-flex";
   actions.style.alignItems = "center";
   actions.style.gap = `${OVERLAY_ICON_GAP_PX}px`;
+  actions.style.marginRight = "6px";
   actions.style.flexShrink = "0";
 
   const monitorToggleButton = document.createElement("button");
