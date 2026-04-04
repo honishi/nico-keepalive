@@ -365,7 +365,7 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   monitorToggleButton.style.alignItems = "center";
   monitorToggleButton.style.justifyContent = "center";
   monitorToggleButton.style.minWidth = "38px";
-  monitorToggleButton.style.height = `${OVERLAY_ICON_COLUMN_PX}px`;
+  monitorToggleButton.style.height = "18px";
   monitorToggleButton.style.padding = "0 6px";
   monitorToggleButton.style.border = "1px solid rgba(255,255,255,0.35)";
   monitorToggleButton.style.borderRadius = "999px";
@@ -504,10 +504,10 @@ function ensureMonitorOverlay(): MonitorOverlayElements | null {
   panel.statusSummary.style.flex = "1";
 
   dragHandle.appendChild(panel.statusSummary);
-  header.appendChild(toggleButton);
-  header.appendChild(dragHandle);
   actions.appendChild(monitorToggleButton);
+  header.appendChild(toggleButton);
   header.appendChild(actions);
+  header.appendChild(dragHandle);
 
   panel.generalTitle.dataset.role = "general-title";
   styleOverlayTitle(panel.generalTitle);

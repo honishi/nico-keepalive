@@ -68,8 +68,8 @@ describe("monitor overlay", () => {
 
     expect(panel?.textContent).not.toContain("nico-keepalive monitor status");
     expect(header?.firstElementChild).toBe(toggleButton);
-    expect(header?.children.item(1)).toBe(dragHandle);
-    expect(header?.lastElementChild).toBe(actions);
+    expect(header?.children.item(1)).toBe(actions);
+    expect(header?.lastElementChild).toBe(dragHandle);
     expect(actions?.firstElementChild).toBe(monitorToggleButton);
     expect(actions?.childElementCount).toBe(1);
     expect(summary?.textContent).toBe("再生: ✅  映像: ✅  音: ✅  判定: ✅");
